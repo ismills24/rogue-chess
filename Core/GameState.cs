@@ -1,4 +1,5 @@
 using ChessRogue.Core.Board;
+using ChessRogue.Core.Events;
 
 namespace ChessRogue.Core
 {
@@ -8,12 +9,14 @@ namespace ChessRogue.Core
         public PlayerColor CurrentPlayer { get; private set; }
         public int TurnNumber { get; private set; }
 
-        /// <summary>
-        /// History of moves applied to reach this state.
-        /// Useful for undo, AI training, and debugging.
-        /// </summary>
         public IReadOnlyList<Move> MoveHistory => moveHistory.AsReadOnly();
         private readonly List<Move> moveHistory;
+
+        /// <summary>
+        /// Central queue of events emitted during gameplay.
+        /// The runner / frontend drains this queue in order.
+        /// </summary>
+        private readonly Queue<GameEvent> eventQueue = new();
 
         public GameState(IBoard board, PlayerColor startingPlayer = PlayerColor.White)
         {
@@ -23,63 +26,89 @@ namespace ChessRogue.Core
             moveHistory = new List<Move>();
         }
 
-        /// <summary>
-        /// Apply a move and advance the state.
-        /// Note: does not validate legality — caller must check first.
-        /// </summary>
-        public void ApplyMove(Move move)
+        // ------------------------------
+        // Event management
+        // ------------------------------
+
+        public void EnqueueEvent(GameEvent ev) => eventQueue.Enqueue(ev);
+
+        public bool HasPendingEvents => eventQueue.Count > 0;
+
+        public GameEvent DequeueEvent() => eventQueue.Count > 0 ? eventQueue.Dequeue() : null;
+
+        public IEnumerable<GameEvent> DrainEvents()
         {
+            while (eventQueue.Count > 0)
+                yield return eventQueue.Dequeue();
+        }
+
+        // ------------------------------
+        // Core state mutations
+        // ------------------------------
+
+        /// <summary>
+        /// Apply a move and enqueue resulting events.
+        /// </summary>
+        public IReadOnlyList<GameEvent> ApplyMove(Move move)
+        {
+            var events = new List<GameEvent>();
+
             var piece = Board.GetPieceAt(move.From);
-            if (piece == null) return;
+            if (piece == null)
+                return events;
 
-            // Destination tile
-            var tile = Board.GetTile(move.To);
-
-            // Check tile permission
-            if (tile != null && !tile.CanEnter(piece, move.To, this))
-                return; // illegal by board rule
-
-            // Handle captures
             var captured = Board.GetPieceAt(move.To);
             if (captured != null)
             {
                 Board.RemovePiece(move.To);
                 captured.OnCapture(this);
+                events.Add(
+                    new GameEvent(GameEventType.PieceCaptured, captured, move.From, move.To)
+                );
             }
 
-            // Move piece
             Board.MovePiece(move.From, move.To);
             piece.OnMove(move, this);
+            events.Add(new GameEvent(GameEventType.MoveApplied, piece, move.From, move.To));
 
-            // Post-move tile effect
-            tile?.OnEnter(piece, move.To, this);
-
-            // Record move
-            moveHistory.Add(move);
-
-            // Advance turn
-            CurrentPlayer = (CurrentPlayer == PlayerColor.White) ? PlayerColor.Black : PlayerColor.White;
-            TurnNumber++;
-
-            // Trigger "standing on tile" effects for the new current player
-            foreach (var standing in Board.GetAllPieces(CurrentPlayer))
+            // Promotion check
+            if (
+                piece is Pawn pawn
+                && (
+                    (pawn.Owner == PlayerColor.White && move.To.y == 7)
+                    || (pawn.Owner == PlayerColor.Black && move.To.y == 0)
+                )
+            )
             {
-                var standingTile = Board.GetTile(standing.Position);
-                standingTile?.OnTurnStart(standing, standing.Position, this);
+                var promoted = new Queen(pawn.Owner, move.To);
+                Board.PlacePiece(promoted, move.To);
+                events.Add(
+                    new GameEvent(GameEventType.PiecePromoted, promoted, move.From, move.To)
+                );
             }
+
+            moveHistory.Add(move);
+            CurrentPlayer =
+                (CurrentPlayer == PlayerColor.White) ? PlayerColor.Black : PlayerColor.White;
+            TurnNumber++;
+            events.Add(
+                new GameEvent(GameEventType.TurnAdvanced, null, null, null, $"Turn {TurnNumber}")
+            );
+
+            return events;
         }
 
         public void UndoLastMove()
         {
-            if (moveHistory.Count == 0) return;
+            if (moveHistory.Count == 0)
+                return;
 
-            // Rewind by snapshot instead of trying to “reverse apply”
             var previous = CloneFromHistory(moveHistory.Count - 1);
-            this.Board = previous.Board;
-            this.CurrentPlayer = previous.CurrentPlayer;
-            this.TurnNumber = previous.TurnNumber;
-            this.moveHistory.Clear();
-            this.moveHistory.AddRange(previous.moveHistory);
+            Board = previous.Board;
+            CurrentPlayer = previous.CurrentPlayer;
+            TurnNumber = previous.TurnNumber;
+            moveHistory.Clear();
+            moveHistory.AddRange(previous.moveHistory);
         }
 
         public GameState Clone()
@@ -95,6 +124,7 @@ namespace ChessRogue.Core
             for (int i = 0; i < moveCount; i++)
             {
                 clone.ApplyMove(moveHistory[i]);
+                clone.DrainEvents(); // discard events during replay
             }
             return clone;
         }

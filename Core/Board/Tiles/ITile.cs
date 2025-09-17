@@ -1,3 +1,5 @@
+using ChessRogue.Core.Events;
+
 namespace ChessRogue.Core.Board
 {
     public interface ITile
@@ -6,9 +8,9 @@ namespace ChessRogue.Core.Board
         bool CanEnter(IPiece piece, Vector2Int pos, GameState state);
 
         // What happens when a piece lands here?
-        void OnEnter(IPiece piece, Vector2Int pos, GameState state);
+        IEnumerable<GameEvent> OnEnter(IPiece piece, Vector2Int pos, GameState state);
 
         // Optional: effect while standing on it
-        void OnTurnStart(IPiece piece, Vector2Int pos, GameState state);
+        IEnumerable<GameEvent> OnTurnStart(IPiece piece, Vector2Int pos, GameState state);
     }
 }

@@ -18,18 +18,20 @@ class Program
             ruleSet
         );
 
-        while (true)
+        while (!runner.IsGameOver)
         {
             PrintBoard(state.Board);
             runner.RunTurn();
         }
+        PrintBoard(state.Board);
+        Console.WriteLine("Game over. Press any key to exit...");
+        Console.ReadKey();
     }
 
     static StandardBoard SetupStandardBoard()
     {
         var board = new StandardBoard(8, 8);
         Console.WriteLine($"Board created: {board.Width}x{board.Height}");
-
 
         // Pawns
         for (int x = 0; x < 8; x++)

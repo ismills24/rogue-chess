@@ -1,5 +1,6 @@
-using System;
+using ChessRogue.Core.Events;
 using ChessRogue.Core.RuleSets;
+using ChessRogue.Core.StatusEffects;
 
 namespace ChessRogue.Core.Runner
 {
@@ -10,6 +11,7 @@ namespace ChessRogue.Core.Runner
         private readonly IPlayerController black;
         private readonly IRuleSet ruleset;
         private bool gameOver;
+        public bool IsGameOver => gameOver;
 
         public GameRunner(
             GameState initialState,
@@ -25,61 +27,109 @@ namespace ChessRogue.Core.Runner
             this.gameOver = false;
         }
 
+        public event Action<GameEvent>? OnEventPublished;
+
         public void RunTurn()
         {
             if (gameOver)
                 return;
 
+            // --- Pre-move win condition check ---
             if (ruleset.IsGameOver(state, out var preWinner))
             {
-                AnnounceGameOver(preWinner);
+                EndGame(preWinner);
                 return;
             }
 
+            // --- Tick status effects at start of turn ---
+            foreach (var piece in state.Board.GetAllPieces(state.CurrentPlayer).ToList())
+            {
+                if (piece is IStatusEffectCarrier carrier)
+                {
+                    foreach (var status in carrier.GetStatuses().ToList())
+                    {
+                        foreach (var ev in status.OnTurnStart(piece, state))
+                            Publish(ev);
+                    }
+                }
+
+                var tile = state.Board.GetTile(piece.Position);
+                if (tile != null)
+                {
+                    foreach (var ev in tile.OnTurnStart(piece, piece.Position, state))
+                        Publish(ev);
+                }
+            }
+
+            // --- Gather legal moves ---
             IPlayerController controller = state.CurrentPlayer == PlayerColor.White ? white : black;
             var pieces = state.Board.GetAllPieces(state.CurrentPlayer);
             var legalMoves = pieces.SelectMany(p => ruleset.GetLegalMoves(state, p)).ToList();
 
             if (legalMoves.Count == 0)
             {
-                AnnounceGameOver(
-                    state.CurrentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White
-                );
+                var winner =
+                    state.CurrentPlayer == PlayerColor.White
+                        ? PlayerColor.Black
+                        : PlayerColor.White;
+                EndGame(winner);
                 return;
             }
 
+            // --- Get chosen move ---
             var move = controller.SelectMove(state);
-
             if (move is null)
             {
-                AnnounceGameOver(
-                    state.CurrentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White
-                );
+                var winner =
+                    state.CurrentPlayer == PlayerColor.White
+                        ? PlayerColor.Black
+                        : PlayerColor.White;
+                EndGame(winner);
                 return;
             }
 
             var movingSide = state.CurrentPlayer;
-            state.ApplyMove(move);
-            Console.WriteLine($"{movingSide} played {move}");
 
+            // --- Apply move and publish resulting events ---
+            var events = state.ApplyMove(move);
+
+            Publish(
+                new GameEvent(
+                    GameEventType.MoveApplied,
+                    state.Board.GetPieceAt(move.To),
+                    move.From,
+                    move.To,
+                    $"{movingSide} played {move}"
+                )
+            );
+
+            foreach (var e in events)
+                Publish(e);
+
+            // --- Post-move win condition check ---
             if (ruleset.IsGameOver(state, out var postWinner))
             {
-                AnnounceGameOver(postWinner);
+                EndGame(postWinner);
             }
         }
 
-        private void AnnounceGameOver(PlayerColor winner)
+        private void EndGame(PlayerColor winner)
         {
+            Publish(
+                new GameEvent(
+                    GameEventType.GameOver,
+                    null,
+                    null,
+                    null,
+                    winner == default ? "Stalemate" : $"{winner} wins!"
+                )
+            );
             gameOver = true;
+        }
 
-            if (winner == default)
-                Console.WriteLine("Game over — stalemate. It's a draw!");
-            else
-                Console.WriteLine($"Game over — {winner} wins!");
-
-            Console.WriteLine("Press any key to exit...");
-            Console.ReadKey();
-            Environment.Exit(0);
+        private void Publish(GameEvent e)
+        {
+            OnEventPublished?.Invoke(e);
         }
 
         public GameState GetState() => state;
