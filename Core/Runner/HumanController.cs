@@ -1,15 +1,24 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using ChessRogue.Core.RuleSets;
 
 namespace ChessRogue.Core.Runner
 {
     public class HumanController : IPlayerController
     {
+        private readonly IRuleSet ruleSet;
+
+        public HumanController(IRuleSet ruleSet)
+        {
+            this.ruleSet = ruleSet;
+        }
+
         public Move SelectMove(GameState state)
         {
-            var pieces = state.Board.GetAllPieces(state.CurrentPlayer);
-            var legalMoves = pieces.SelectMany(p => p.GetLegalMoves(state)).ToList();
+            var legalMoves = state
+                .Board.GetAllPieces(state.CurrentPlayer)
+                .SelectMany(p => ruleSet.GetLegalMoves(state, p))
+                .ToList();
 
             if (legalMoves.Count == 0)
                 return null;
@@ -18,23 +27,21 @@ namespace ChessRogue.Core.Runner
             {
                 Console.WriteLine($"{state.CurrentPlayer}'s turn. Enter move (e.g., e2 e4): ");
                 var input = Console.ReadLine();
-
                 if (string.IsNullOrWhiteSpace(input))
                     continue;
 
                 var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length != 2)
                 {
-                    Console.WriteLine("Invalid format. Use: e2 e4");
+                    Console.WriteLine("Invalid format. Use: e.g., e2 e4");
                     continue;
                 }
 
-                var from = ParseSquare(parts[0]);
-                var to = ParseSquare(parts[1]);
-
+                var from = Parse(parts[0]);
+                var to = Parse(parts[1]);
                 if (from == null || to == null)
                 {
-                    Console.WriteLine("Invalid square. Use a-h and 1-8.");
+                    Console.WriteLine("Invalid square.");
                     continue;
                 }
 
@@ -46,22 +53,17 @@ namespace ChessRogue.Core.Runner
             }
         }
 
-        private Vector2Int? ParseSquare(string algebraic)
+        private Vector2Int? Parse(string s)
         {
-            if (algebraic.Length != 2)
+            if (s.Length != 2)
                 return null;
-
-            char file = algebraic[0];
-            char rank = algebraic[1];
-
-            if (file < 'a' || file > 'h')
+            var f = s[0];
+            var r = s[1];
+            if (f < 'a' || f > 'h')
                 return null;
-            if (rank < '1' || rank > '8')
+            if (r < '1' || r > '8')
                 return null;
-
-            int x = file - 'a'; // file → column
-            int y = (rank - '1'); // rank → row
-            return new Vector2Int(x, y);
+            return new Vector2Int(f - 'a', r - '1');
         }
     }
 }

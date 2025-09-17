@@ -1,31 +1,26 @@
 ﻿using ChessRogue.Core;
 using ChessRogue.Core.Rules;
+using ChessRogue.Core.RuleSets;
 using ChessRogue.Core.Runner;
 
 class Program
 {
     static void Main()
     {
+        var ruleSet = new StandardChessRuleSet();
         var board = SetupStandardBoard();
         var state = new GameState(board, PlayerColor.White);
 
         var runner = new GameRunner(
             state,
-            new HumanController(), // White
-            new HumanController(), // Black
-            new CheckmateCondition()
+            new HumanController(ruleSet), // White
+            new HumanController(ruleSet), // Black
+            new CheckmateCondition(ruleSet)
         );
 
         while (true)
         {
             PrintBoard(state.Board);
-
-            if (runner.GetState().MoveHistory.Count > 0)
-            {
-                var last = runner.GetState().MoveHistory[^1];
-                Console.WriteLine($"Last move: {last}");
-            }
-
             runner.RunTurn();
         }
     }
@@ -78,7 +73,7 @@ class Program
 
     static void PrintBoard(Board board)
     {
-        Console.Clear();
+        
         Console.WriteLine("  a b c d e f g h");
 
         for (int y = board.Height - 1; y >= 0; y--)

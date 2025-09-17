@@ -110,7 +110,13 @@ namespace ChessRogue.Core
             for (int y = 0; y < height; y++)
             {
                 clone.cells[x, y].IsBlocked = cells[x, y].IsBlocked;
-                clone.cells[x, y].Piece = cells[x, y].Piece; // shallow copy
+                var piece = cells[x, y].Piece;
+                if (piece != null)
+                {
+                    var copy = piece.Clone();
+                    clone.cells[x, y].Piece = copy;
+                    copy.Position = new Vector2Int(x, y);
+                }
             }
             return clone;
         }

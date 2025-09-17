@@ -13,7 +13,7 @@ public class King : IPiece
         Position = startPos;
     }
 
-    public IEnumerable<Move> GetLegalMoves(GameState state)
+    public IEnumerable<Move> GetPseudoLegalMoves(GameState state)
     {
         return MovementRules.AdjacentMoves(state, this, includeDiagonals: true);
     }
@@ -21,4 +21,9 @@ public class King : IPiece
     public void OnMove(Move move, GameState state) { }
 
     public void OnCapture(GameState state) { }
+
+    public IPiece Clone()
+    {
+        return new King(Owner, Position);
+    }
 }

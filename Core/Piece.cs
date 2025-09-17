@@ -6,8 +6,13 @@ namespace ChessRogue.Core
         Vector2Int Position { get; set; }
         string Name { get; }
 
-        IEnumerable<Move> GetLegalMoves(GameState state);
+        // PSEUDO-LEGAL (no king-safety filtering)
+        IEnumerable<Move> GetPseudoLegalMoves(GameState state);
+
         void OnMove(Move move, GameState state);
         void OnCapture(GameState state);
+
+        // NEW: deep clone this piece
+        IPiece Clone();
     }
 }

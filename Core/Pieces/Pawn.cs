@@ -13,7 +13,7 @@ public class Pawn : IPiece
         Position = startPos;
     }
 
-    public IEnumerable<Move> GetLegalMoves(GameState state)
+    public IEnumerable<Move> GetPseudoLegalMoves(GameState state)
     {
         int direction = (Owner == PlayerColor.White) ? 1 : -1;
         var moves = new List<Move>();
@@ -53,4 +53,9 @@ public class Pawn : IPiece
     }
 
     public void OnCapture(GameState state) { }
+
+    public IPiece Clone()
+    {
+        return new Pawn(Owner, Position);
+    }
 }

@@ -13,7 +13,7 @@ public class Knight : IPiece
         Position = startPos;
     }
 
-    public IEnumerable<Move> GetLegalMoves(GameState state)
+    public IEnumerable<Move> GetPseudoLegalMoves(GameState state)
     {
         var offsets = new[]
         {
@@ -32,4 +32,9 @@ public class Knight : IPiece
     public void OnMove(Move move, GameState state) { }
 
     public void OnCapture(GameState state) { }
+
+    public IPiece Clone()
+    {
+        return new Knight(Owner, Position);
+    }
 }

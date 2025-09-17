@@ -13,7 +13,7 @@ public class Queen : IPiece
         Position = startPos;
     }
 
-    public IEnumerable<Move> GetLegalMoves(GameState state)
+    public IEnumerable<Move> GetPseudoLegalMoves(GameState state)
     {
         return MovementRules.SlidingMoves(
             state,
@@ -35,4 +35,9 @@ public class Queen : IPiece
     public void OnMove(Move move, GameState state) { }
 
     public void OnCapture(GameState state) { }
+
+    public IPiece Clone()
+    {
+        return new Queen(Owner, Position);
+    }
 }
