@@ -1,4 +1,3 @@
-using System;
 using ChessRogue.Core.Rules;
 
 namespace ChessRogue.Core.Runner
