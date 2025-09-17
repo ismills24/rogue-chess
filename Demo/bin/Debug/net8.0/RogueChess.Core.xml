@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>RogueChess.Core</name>
+    </assembly>
+    <members>
+        <member name="F:ChessRogue.Core.GameState.eventQueue">
+            <summary>
+            Central queue of events emitted during gameplay.
+            The runner / frontend drains this queue in order.
+            </summary>
+        </member>
+        <member name="M:ChessRogue.Core.GameState.ApplyMove(ChessRogue.Core.Move)">
+            <summary>
+            Apply a move and enqueue resulting events.
+            </summary>
+        </member>
+        <member name="T:ChessRogue.Core.Pieces.Decorators.PieceDecoratorBase">
+            <summary>
+            Base class for piece decorators — forwards everything to the inner piece
+            unless overridden.
+            </summary>
+        </member>
+        <member name="M:ChessRogue.Core.Pieces.Movement.SlidingMoves(ChessRogue.Core.GameState,ChessRogue.Core.IPiece,System.Collections.Generic.IEnumerable{ChessRogue.Core.Vector2Int})">
+            <summary>
+            Sliding movement in straight lines until blocked (Rook, Bishop, Queen).
+            </summary>
+        </member>
+        <member name="M:ChessRogue.Core.Pieces.Movement.JumpMoves(ChessRogue.Core.GameState,ChessRogue.Core.IPiece,System.Collections.Generic.IEnumerable{ChessRogue.Core.Vector2Int})">
+            <summary>
+            Fixed offset “leap” moves that ignore intervening pieces (Knight, custom leapers).
+            </summary>
+        </member>
+        <member name="M:ChessRogue.Core.Pieces.Movement.AdjacentMoves(ChessRogue.Core.GameState,ChessRogue.Core.IPiece,System.Boolean)">
+            <summary>
+            Moves to the 8 surrounding squares (or fewer if filtered).
+            </summary>
+        </member>
+        <member name="M:ChessRogue.Core.Pieces.Movement.ForwardMoves(ChessRogue.Core.GameState,ChessRogue.Core.IPiece,System.Int32,System.Int32)">
+            <summary>
+            Forward-only pawn-style movement.
+            </summary>
+        </member>
+        <member name="M:ChessRogue.Core.Pieces.Movement.DiagonalCaptures(ChessRogue.Core.GameState,ChessRogue.Core.IPiece,System.Int32)">
+            <summary>
+            Pawn-style diagonal captures (does not include en passant).
+            </summary>
+        </member>
+        <member name="M:ChessRogue.Core.Pieces.Movement.EnPassantCaptures(ChessRogue.Core.GameState,ChessRogue.Core.IPiece,System.Int32)">
+            <summary>
+            En Passant captures (if last move was a double pawn step).
+            </summary>
+        </member>
+    </members>
+</doc>

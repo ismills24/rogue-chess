@@ -13,3 +13,8 @@ C:\Users\Isaac\Documents\Git\rogue-chess\Demo\obj\Debug\net8.0\refint\Demo.dll
 C:\Users\Isaac\Documents\Git\rogue-chess\Demo\obj\Debug\net8.0\Demo.pdb
 C:\Users\Isaac\Documents\Git\rogue-chess\Demo\obj\Debug\net8.0\Demo.genruntimeconfig.cache
 C:\Users\Isaac\Documents\Git\rogue-chess\Demo\obj\Debug\net8.0\ref\Demo.dll
+C:\Users\Isaac\Documents\Git\rogue-chess\Demo\obj\Debug\net8.0\Demo.csproj.AssemblyReference.cache
+C:\Users\Isaac\Documents\Git\rogue-chess\Demo\bin\Debug\net8.0\RogueChess.Core.dll
+C:\Users\Isaac\Documents\Git\rogue-chess\Demo\bin\Debug\net8.0\RogueChess.Core.pdb
+C:\Users\Isaac\Documents\Git\rogue-chess\Demo\bin\Debug\net8.0\RogueChess.Core.xml
+C:\Users\Isaac\Documents\Git\rogue-chess\Demo\obj\Debug\net8.0\Demo.csproj.Up2Date

@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "RogueChess.UI/1.0.0": {
+        "dependencies": {
+          "RogueChess.Core": "1.0.0"
+        },
+        "runtime": {
+          "RogueChess.UI.dll": {}
+        }
+      },
+      "RogueChess.Core/1.0.0": {
+        "runtime": {
+          "RogueChess.Core.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "RogueChess.UI/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "RogueChess.Core/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
