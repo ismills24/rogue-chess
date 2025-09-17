@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using ChessRogue.Core;
+using ChessRogue.Core.Pieces;
 using ChessRogue.Core.Runner;
 using ChessRogue.Core.Rules;
 
@@ -9,7 +10,6 @@ class Program
     static void Main()
     {
         var board = SetupStandardBoard();
-
         var state = new GameState(board, PlayerColor.White);
 
         var runner = new GameRunner(
@@ -19,10 +19,16 @@ class Program
             new CheckmateCondition()
         );
 
-        // Run game loop
         while (true)
         {
             PrintBoard(state.Board);
+
+            if (runner.GetState().MoveHistory.Count > 0)
+            {
+                var last = runner.GetState().MoveHistory[^1];
+                Console.WriteLine($"Last move: {last}");
+            }
+
             runner.RunTurn();
         }
     }
@@ -69,23 +75,28 @@ class Program
 
     static void PrintBoard(Board board)
     {
+        Console.Clear();
+        Console.WriteLine("  a b c d e f g h");
+
         for (int y = board.Height - 1; y >= 0; y--)
         {
+            Console.Write($"{y+1} ");
             for (int x = 0; x < board.Width; x++)
             {
                 var piece = board.GetPieceAt(new Vector2Int(x,y));
-                if (piece == null) Console.Write(".");
+                if (piece == null)
+                    Console.Write(". ");
                 else
                 {
                     char c = piece.Name[0];
                     if (piece.Owner == PlayerColor.Black)
                         c = char.ToLower(c);
-                    Console.Write(c);
+                    Console.Write($"{c} ");
                 }
-                Console.Write(" ");
             }
-            Console.WriteLine();
+            Console.WriteLine($"{y+1}");
         }
+        Console.WriteLine("  a b c d e f g h");
         Console.WriteLine();
     }
 }
