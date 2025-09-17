@@ -1,104 +1,104 @@
 ﻿using ChessRogue.Core;
 using ChessRogue.Core.Board;
+using ChessRogue.Core.Board.Tiles;
+using ChessRogue.Core.Pieces.Decorators;
 using ChessRogue.Core.RuleSets;
 using ChessRogue.Core.Runner;
+using ChessRogue.Core.StatusEffects;
 
 class Program
 {
     static void Main()
     {
-        var ruleSet = new StandardChessRuleSet();
-        var board = SetupStandardBoard();
-        var state = new GameState(board, PlayerColor.White);
+        Console.WriteLine("Choose game mode:");
+        Console.WriteLine("1. Standard Chess");
+        Console.WriteLine("2. Custom: Last Piece Standing");
+        Console.Write("Enter choice: ");
+        var choice = Console.ReadLine();
+
+        (GameState state, IRuleSet ruleSet) setup;
+
+        if (choice == "2")
+            setup = CustomGameSetup.Create();
+        else
+            setup = StandardGameSetup.Create();
 
         var runner = new GameRunner(
-            state,
-            new HumanController(ruleSet), // White
-            new HumanController(ruleSet), // Black
-            ruleSet
+            setup.state,
+            new HumanController(setup.ruleSet), // White
+            new HumanController(setup.ruleSet), // Black
+            setup.ruleSet
         );
 
         while (!runner.IsGameOver)
         {
-            PrintBoard(state.Board);
+            PrintBoard(setup.state.Board);
             runner.RunTurn();
         }
-        PrintBoard(state.Board);
+
+        PrintBoard(setup.state.Board);
         Console.WriteLine("Game over. Press any key to exit...");
         Console.ReadKey();
     }
 
-    static StandardBoard SetupStandardBoard()
-    {
-        var board = new StandardBoard(8, 8);
-        Console.WriteLine($"Board created: {board.Width}x{board.Height}");
-
-        // Pawns
-        for (int x = 0; x < 8; x++)
-        {
-            board.PlacePiece(
-                new Pawn(PlayerColor.White, new Vector2Int(x, 1)),
-                new Vector2Int(x, 1)
-            );
-            board.PlacePiece(
-                new Pawn(PlayerColor.Black, new Vector2Int(x, 6)),
-                new Vector2Int(x, 6)
-            );
-        }
-
-        // Rooks
-        board.PlacePiece(new Rook(PlayerColor.White, new Vector2Int(0, 0)), new Vector2Int(0, 0));
-        board.PlacePiece(new Rook(PlayerColor.White, new Vector2Int(7, 0)), new Vector2Int(7, 0));
-        board.PlacePiece(new Rook(PlayerColor.Black, new Vector2Int(0, 7)), new Vector2Int(0, 7));
-        board.PlacePiece(new Rook(PlayerColor.Black, new Vector2Int(7, 7)), new Vector2Int(7, 7));
-
-        // Knights
-        board.PlacePiece(new Knight(PlayerColor.White, new Vector2Int(1, 0)), new Vector2Int(1, 0));
-        board.PlacePiece(new Knight(PlayerColor.White, new Vector2Int(6, 0)), new Vector2Int(6, 0));
-        board.PlacePiece(new Knight(PlayerColor.Black, new Vector2Int(1, 7)), new Vector2Int(1, 7));
-        board.PlacePiece(new Knight(PlayerColor.Black, new Vector2Int(6, 7)), new Vector2Int(6, 7));
-
-        // Bishops
-        board.PlacePiece(new Bishop(PlayerColor.White, new Vector2Int(2, 0)), new Vector2Int(2, 0));
-        board.PlacePiece(new Bishop(PlayerColor.White, new Vector2Int(5, 0)), new Vector2Int(5, 0));
-        board.PlacePiece(new Bishop(PlayerColor.Black, new Vector2Int(2, 7)), new Vector2Int(2, 7));
-        board.PlacePiece(new Bishop(PlayerColor.Black, new Vector2Int(5, 7)), new Vector2Int(5, 7));
-
-        // Queens
-        board.PlacePiece(new Queen(PlayerColor.White, new Vector2Int(3, 0)), new Vector2Int(3, 0));
-        board.PlacePiece(new Queen(PlayerColor.Black, new Vector2Int(3, 7)), new Vector2Int(3, 7));
-
-        // Kings
-        board.PlacePiece(new King(PlayerColor.White, new Vector2Int(4, 0)), new Vector2Int(4, 0));
-        board.PlacePiece(new King(PlayerColor.Black, new Vector2Int(4, 7)), new Vector2Int(4, 7));
-
-        return board;
-    }
-
     static void PrintBoard(IBoard board)
     {
-        Console.WriteLine("  a b c d e f g h");
+        Console.WriteLine();
+        Console.WriteLine("    a b c d e f g h");
+        Console.WriteLine("   -----------------");
 
         for (int y = board.Height - 1; y >= 0; y--)
         {
-            Console.Write($"{y + 1} ");
+            Console.Write($"{y + 1} | ");
+
             for (int x = 0; x < board.Width; x++)
             {
-                var piece = board.GetPieceAt(new Vector2Int(x, y));
-                if (piece == null)
-                    Console.Write(". ");
-                else
-                {
-                    char c = piece.Name[0];
-                    if (piece.Owner == PlayerColor.Black)
-                        c = char.ToLower(c);
-                    Console.Write($"{c} ");
-                }
+                var pos = new Vector2Int(x, y);
+                var symbol = GetBoardSymbol(board, pos);
+                Console.Write(symbol + " ");
             }
-            Console.WriteLine($"{y + 1}");
+
+            Console.WriteLine($"| {y + 1}");
         }
 
-        Console.WriteLine("  a b c d e f g h");
+        Console.WriteLine("   -----------------");
+        Console.WriteLine("    a b c d e f g h");
         Console.WriteLine();
+    }
+
+    static char GetBoardSymbol(IBoard board, Vector2Int pos)
+    {
+        var piece = board.GetPieceAt(pos);
+        var tile = board.GetTile(pos);
+
+        if (piece == null)
+        {
+            // --- Tile overlays ---
+            if (tile is SlipperyTile)
+                return '#';
+            if (tile is ScorchedTile)
+                return '*';
+            return '.';
+        }
+
+        // --- Piece rendering ---
+        char c = piece.Name[0];
+
+        // Lowercase for black
+        if (piece.Owner == PlayerColor.Black)
+            c = char.ToLower(c);
+
+        // Exploding decorator overrides symbol
+        if (piece is ExplodingPieceDecorator)
+            return '!';
+
+        // Burning status overrides symbol
+        if (
+            piece is IStatusEffectCarrier carrier
+            && carrier.GetStatuses().Any(s => s.Name == "Burning")
+        )
+            return '\'';
+
+        return c;
     }
 }

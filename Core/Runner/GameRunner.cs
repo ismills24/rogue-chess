@@ -13,6 +13,8 @@ namespace ChessRogue.Core.Runner
         private bool gameOver;
         public bool IsGameOver => gameOver;
 
+        public GameState GetState() => state;
+
         public GameRunner(
             GameState initialState,
             IPlayerController whiteController,
@@ -63,6 +65,7 @@ namespace ChessRogue.Core.Runner
 
             // --- Gather legal moves ---
             IPlayerController controller = state.CurrentPlayer == PlayerColor.White ? white : black;
+
             var pieces = state.Board.GetAllPieces(state.CurrentPlayer);
             var legalMoves = pieces.SelectMany(p => ruleset.GetLegalMoves(state, p)).ToList();
 
@@ -88,21 +91,8 @@ namespace ChessRogue.Core.Runner
                 return;
             }
 
-            var movingSide = state.CurrentPlayer;
-
             // --- Apply move and publish resulting events ---
             var events = state.ApplyMove(move);
-
-            Publish(
-                new GameEvent(
-                    GameEventType.MoveApplied,
-                    state.Board.GetPieceAt(move.To),
-                    move.From,
-                    move.To,
-                    $"{movingSide} played {move}"
-                )
-            );
-
             foreach (var e in events)
                 Publish(e);
 
@@ -127,11 +117,36 @@ namespace ChessRogue.Core.Runner
             gameOver = true;
         }
 
+        // GameRunner.cs (Publish)
         private void Publish(GameEvent e)
         {
+            // Handle real side effects for tile-driven forced movement
+            if (
+                e.Type == GameEventType.TileEffectTriggered
+                && e.Piece != null
+                && e.From != null
+                && e.To != null
+            )
+            {
+                // Guard: ignore no-op moves (From == To)
+                if (e.From.Value != e.To.Value)
+                {
+                    // Move the piece
+                    state.Board.MovePiece(e.From.Value, e.To.Value);
+                    e.Piece.Position = e.To.Value;
+                    state.RecordSyntheticMove(new Move(e.From.Value, e.To.Value, e.Piece, false));
+
+                    // Chain: trigger tile effects at the new square
+                    var tile = state.Board.GetTile(e.To.Value);
+                    if (tile != null)
+                    {
+                        foreach (var ev in tile.OnEnter(e.Piece, e.To.Value, state))
+                            Publish(ev); // recursive chain, but safe due to From!=To guard & tiles not mutating
+                    }
+                }
+            }
+
             OnEventPublished?.Invoke(e);
         }
-
-        public GameState GetState() => state;
     }
 }

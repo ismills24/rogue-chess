@@ -49,7 +49,7 @@ namespace ChessRogue.Core.Pieces.Decorators
                 var occupant = state.Board.GetPieceAt(target);
                 if (occupant is IStatusEffectCarrier carrier)
                 {
-                    carrier.AddStatus(new BurningStatus(2));
+                    carrier.AddStatus(new BurningStatus());
                     state.EnqueueEvent(
                         new GameEvent(
                             GameEventType.StatusEffectTriggered,

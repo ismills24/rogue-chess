@@ -1,3 +1,4 @@
+// SlipperyTile.cs
 using ChessRogue.Core.Events;
 
 namespace ChessRogue.Core.Board.Tiles
@@ -10,33 +11,33 @@ namespace ChessRogue.Core.Board.Tiles
             GameState state
         )
         {
-            // Slide one more step in the same direction if possible
+            // Find direction of the last *real* move that landed here
             var lastMove = state.MoveHistory.LastOrDefault();
-            if (lastMove != null && lastMove.To == pos)
+            if (lastMove == null || lastMove.To != pos)
+                yield break;
+            var dir = pos - lastMove.From;
+            if (dir.x == 0 && dir.y == 0)
+                yield break;
+
+            // Normalize to one square step
+            if (dir.x != 0)
+                dir.x = Math.Sign(dir.x);
+            if (dir.y != 0)
+                dir.y = Math.Sign(dir.y);
+
+            var next = pos + dir;
+
+            if (state.Board.IsInBounds(next) && state.Board.GetPieceAt(next) == null)
             {
-                var dir = pos - lastMove.From;
-                var slipTarget = pos + dir;
-
-                if (
-                    state.Board.IsInBounds(slipTarget)
-                    && state.Board.GetPieceAt(slipTarget) == null
-                )
-                {
-                    state.Board.MovePiece(pos, slipTarget);
-
-                    yield return new GameEvent(
-                        GameEventType.TileEffectTriggered,
-                        piece,
-                        pos,
-                        slipTarget,
-                        "Slipped!"
-                    );
-                }
+                // Only emit — do not mutate here
+                yield return new GameEvent(
+                    GameEventType.TileEffectTriggered,
+                    piece,
+                    pos,
+                    next,
+                    "Slipped!"
+                );
             }
-
-            // Call base to emit "Moved"
-            foreach (var ev in base.OnEnter(piece, pos, state))
-                yield return ev;
         }
     }
 }

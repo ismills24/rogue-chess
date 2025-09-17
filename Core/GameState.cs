@@ -52,11 +52,11 @@ namespace ChessRogue.Core
         public IReadOnlyList<GameEvent> ApplyMove(Move move)
         {
             var events = new List<GameEvent>();
-
             var piece = Board.GetPieceAt(move.From);
             if (piece == null)
                 return events;
 
+            // Captures
             var captured = Board.GetPieceAt(move.To);
             if (captured != null)
             {
@@ -67,11 +67,12 @@ namespace ChessRogue.Core
                 );
             }
 
+            // Move the piece
             Board.MovePiece(move.From, move.To);
             piece.OnMove(move, this);
             events.Add(new GameEvent(GameEventType.MoveApplied, piece, move.From, move.To));
 
-            // Promotion check
+            // Promotion
             if (
                 piece is Pawn pawn
                 && (
@@ -87,6 +88,7 @@ namespace ChessRogue.Core
                 );
             }
 
+            // Record move
             moveHistory.Add(move);
             CurrentPlayer =
                 (CurrentPlayer == PlayerColor.White) ? PlayerColor.Black : PlayerColor.White;
@@ -94,6 +96,14 @@ namespace ChessRogue.Core
             events.Add(
                 new GameEvent(GameEventType.TurnAdvanced, null, null, null, $"Turn {TurnNumber}")
             );
+
+            // NEW: trigger tile entry for the destination square
+            var landedTile = Board.GetTile(move.To);
+            if (landedTile != null)
+            {
+                foreach (var ev in landedTile.OnEnter(piece, move.To, this))
+                    events.Add(ev);
+            }
 
             return events;
         }
@@ -127,6 +137,11 @@ namespace ChessRogue.Core
                 clone.DrainEvents(); // discard events during replay
             }
             return clone;
+        }
+
+        public void RecordSyntheticMove(Move move)
+        {
+            moveHistory.Add(move);
         }
     }
 }

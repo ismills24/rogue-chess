@@ -1,3 +1,4 @@
+// StandardTile.cs
 using ChessRogue.Core.Events;
 
 namespace ChessRogue.Core.Board
@@ -6,17 +7,12 @@ namespace ChessRogue.Core.Board
     {
         public virtual bool CanEnter(IPiece piece, Vector2Int pos, GameState state) => true;
 
-        public virtual IEnumerable<GameEvent> OnEnter(IPiece piece, Vector2Int pos, GameState state)
-        {
-            var move = new Move(piece.Position, pos, piece);
-            yield return new GameEvent(
-                GameEventType.TileEffectTriggered,
-                piece,
-                move.From,
-                move.To,
-                "Moved"
-            );
-        }
+        // No events by default — avoid re-trigger loops.
+        public virtual IEnumerable<GameEvent> OnEnter(
+            IPiece piece,
+            Vector2Int pos,
+            GameState state
+        ) => Array.Empty<GameEvent>();
 
         public virtual IEnumerable<GameEvent> OnTurnStart(
             IPiece piece,

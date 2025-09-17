@@ -5,40 +5,37 @@ namespace ChessRogue.Core.StatusEffects
     public class BurningStatus : IStatusEffect
     {
         public string Name => "Burning";
-        public int Duration { get; private set; }
+        public int Duration => turnsRemaining;
 
-        public BurningStatus(int duration) => Duration = duration;
+        private int turnsRemaining = 2;
 
         public IEnumerable<GameEvent> OnTurnStart(IPiece piece, GameState state)
         {
-            Duration--;
+            turnsRemaining--;
 
-            yield return new GameEvent(
-                GameEventType.StatusEffectTriggered,
-                piece,
-                piece.Position,
-                piece.Position,
-                $"Burning! {Duration} turns left"
-            );
-
-            if (Duration <= 0)
+            if (turnsRemaining <= 0)
             {
                 state.Board.RemovePiece(piece.Position);
+
                 yield return new GameEvent(
-                    GameEventType.PieceCaptured,
+                    GameEventType.StatusEffectTriggered,
                     piece,
                     piece.Position,
-                    piece.Position,
-                    "Burned to ash!"
+                    null,
+                    "Burned to ashes!"
                 );
             }
         }
 
         public IEnumerable<GameEvent> OnRemove(IPiece piece, GameState state)
         {
+            // Optional cleanup, e.g. visual/sound effects
             yield break;
         }
 
-        public IStatusEffect Clone() => new BurningStatus(Duration);
+        public IStatusEffect Clone()
+        {
+            return new BurningStatus { turnsRemaining = this.turnsRemaining };
+        }
     }
 }
