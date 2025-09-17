@@ -1,5 +1,5 @@
 using ChessRogue.Core;
-using ChessRogue.Core.Rules;
+using ChessRogue.Core.Pieces;
 
 public class Pawn : IPiece
 {
@@ -19,7 +19,7 @@ public class Pawn : IPiece
         var moves = new List<Move>();
 
         // Standard forward moves
-        moves.AddRange(MovementRules.ForwardMoves(state, this, 1, direction));
+        moves.AddRange(Movement.ForwardMoves(state, this, 1, direction));
 
         // Double step from starting rank
         if (
@@ -27,14 +27,14 @@ public class Pawn : IPiece
             || (Owner == PlayerColor.Black && Position.y == 6)
         )
         {
-            moves.AddRange(MovementRules.ForwardMoves(state, this, 2, direction));
+            moves.AddRange(Movement.ForwardMoves(state, this, 2, direction));
         }
 
         // Captures
-        moves.AddRange(MovementRules.DiagonalCaptures(state, this, direction));
+        moves.AddRange(Movement.DiagonalCaptures(state, this, direction));
 
         // En Passant
-        moves.AddRange(MovementRules.EnPassantCaptures(state, this, direction));
+        moves.AddRange(Movement.EnPassantCaptures(state, this, direction));
 
         return moves;
     }

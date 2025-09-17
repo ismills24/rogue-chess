@@ -4,19 +4,21 @@ namespace ChessRogue.Core.Runner
 {
     public class HumanController : IPlayerController
     {
-        private readonly IRuleSet ruleSet;
+        private readonly IRuleSet ruleset;
 
-        public HumanController(IRuleSet ruleSet)
+        public HumanController(IRuleSet ruleset)
         {
-            this.ruleSet = ruleSet;
+            this.ruleset = ruleset;
         }
 
         public Move SelectMove(GameState state)
         {
-            var legalMoves = state
-                .Board.GetAllPieces(state.CurrentPlayer)
-                .SelectMany(p => ruleSet.GetLegalMoves(state, p))
-                .ToList();
+            var pieces = state.Board.GetAllPieces(state.CurrentPlayer);
+            var pseudoMoves = pieces.SelectMany(p => p.GetPseudoLegalMoves(state)).ToList();
+            Console.WriteLine(
+                $"DEBUG: {pseudoMoves.Count} pseudo-legal moves for {state.CurrentPlayer}"
+            );
+            var legalMoves = pieces.SelectMany(p => ruleset.GetLegalMoves(state, p)).ToList();
 
             if (legalMoves.Count == 0)
                 return null;
@@ -25,21 +27,23 @@ namespace ChessRogue.Core.Runner
             {
                 Console.WriteLine($"{state.CurrentPlayer}'s turn. Enter move (e.g., e2 e4): ");
                 var input = Console.ReadLine();
+
                 if (string.IsNullOrWhiteSpace(input))
                     continue;
 
                 var parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length != 2)
                 {
-                    Console.WriteLine("Invalid format. Use: e.g., e2 e4");
+                    Console.WriteLine("Invalid format. Use: e2 e4");
                     continue;
                 }
 
-                var from = Parse(parts[0]);
-                var to = Parse(parts[1]);
+                var from = ParseSquare(parts[0]);
+                var to = ParseSquare(parts[1]);
+
                 if (from == null || to == null)
                 {
-                    Console.WriteLine("Invalid square.");
+                    Console.WriteLine("Invalid square. Use a-h and 1-8.");
                     continue;
                 }
 
@@ -51,17 +55,22 @@ namespace ChessRogue.Core.Runner
             }
         }
 
-        private Vector2Int? Parse(string s)
+        private Vector2Int? ParseSquare(string algebraic)
         {
-            if (s.Length != 2)
+            if (algebraic.Length != 2)
                 return null;
-            var f = s[0];
-            var r = s[1];
-            if (f < 'a' || f > 'h')
+
+            char file = algebraic[0];
+            char rank = algebraic[1];
+
+            if (file < 'a' || file > 'h')
                 return null;
-            if (r < '1' || r > '8')
+            if (rank < '1' || rank > '8')
                 return null;
-            return new Vector2Int(f - 'a', r - '1');
+
+            int x = file - 'a';
+            int y = rank - '1';
+            return new Vector2Int(x, y);
         }
     }
 }

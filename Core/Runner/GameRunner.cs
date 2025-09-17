@@ -1,4 +1,5 @@
-using ChessRogue.Core.Rules;
+using System;
+using ChessRogue.Core.RuleSets;
 
 namespace ChessRogue.Core.Runner
 {
@@ -7,20 +8,20 @@ namespace ChessRogue.Core.Runner
         private GameState state;
         private readonly IPlayerController white;
         private readonly IPlayerController black;
-        private readonly IWinCondition winCondition;
+        private readonly IRuleSet ruleset;
         private bool gameOver;
 
         public GameRunner(
             GameState initialState,
             IPlayerController whiteController,
             IPlayerController blackController,
-            IWinCondition winCondition
+            IRuleSet ruleset
         )
         {
             this.state = initialState;
             this.white = whiteController;
             this.black = blackController;
-            this.winCondition = winCondition;
+            this.ruleset = ruleset;
             this.gameOver = false;
         }
 
@@ -29,32 +30,39 @@ namespace ChessRogue.Core.Runner
             if (gameOver)
                 return;
 
-            // Pre-move check (stalemate, no-legal-moves before a move is made)
-            if (winCondition.IsGameOver(state, out var preWinner))
+            if (ruleset.IsGameOver(state, out var preWinner))
             {
                 AnnounceGameOver(preWinner);
                 return;
             }
 
-            var movingSide = state.CurrentPlayer;
-            IPlayerController controller = movingSide == PlayerColor.White ? white : black;
+            IPlayerController controller = state.CurrentPlayer == PlayerColor.White ? white : black;
+            var pieces = state.Board.GetAllPieces(state.CurrentPlayer);
+            var legalMoves = pieces.SelectMany(p => ruleset.GetLegalMoves(state, p)).ToList();
+
+            if (legalMoves.Count == 0)
+            {
+                AnnounceGameOver(
+                    state.CurrentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White
+                );
+                return;
+            }
 
             var move = controller.SelectMove(state);
 
             if (move is null)
             {
-                Console.WriteLine($"{movingSide} has no legal moves!");
                 AnnounceGameOver(
-                    movingSide == PlayerColor.White ? PlayerColor.Black : PlayerColor.White
+                    state.CurrentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White
                 );
                 return;
             }
 
+            var movingSide = state.CurrentPlayer;
             state.ApplyMove(move);
             Console.WriteLine($"{movingSide} played {move}");
 
-            // 🔑 Checkmate/stalemate *after* this move
-            if (winCondition.IsGameOver(state, out var postWinner))
+            if (ruleset.IsGameOver(state, out var postWinner))
             {
                 AnnounceGameOver(postWinner);
             }
@@ -65,13 +73,9 @@ namespace ChessRogue.Core.Runner
             gameOver = true;
 
             if (winner == default)
-            {
                 Console.WriteLine("Game over — stalemate. It's a draw!");
-            }
             else
-            {
                 Console.WriteLine($"Game over — {winner} wins!");
-            }
 
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();

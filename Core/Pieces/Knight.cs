@@ -1,5 +1,5 @@
 using ChessRogue.Core;
-using ChessRogue.Core.Rules;
+using ChessRogue.Core.Pieces;
 
 public class Knight : IPiece
 {
@@ -26,7 +26,7 @@ public class Knight : IPiece
             new Vector2Int(-1, 2),
             new Vector2Int(-1, -2),
         };
-        return MovementRules.JumpMoves(state, this, offsets);
+        return Movement.JumpMoves(state, this, offsets);
     }
 
     public void OnMove(Move move, GameState state) { }

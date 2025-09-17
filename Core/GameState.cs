@@ -1,8 +1,10 @@
+using ChessRogue.Core.Board;
+
 namespace ChessRogue.Core
 {
     public class GameState
     {
-        public Board Board { get; private set; }
+        public IBoard Board { get; private set; }
         public PlayerColor CurrentPlayer { get; private set; }
         public int TurnNumber { get; private set; }
 
@@ -13,7 +15,7 @@ namespace ChessRogue.Core
         public IReadOnlyList<Move> MoveHistory => moveHistory.AsReadOnly();
         private readonly List<Move> moveHistory;
 
-        public GameState(Board board, PlayerColor startingPlayer = PlayerColor.White)
+        public GameState(IBoard board, PlayerColor startingPlayer = PlayerColor.White)
         {
             Board = board;
             CurrentPlayer = startingPlayer;
@@ -28,8 +30,14 @@ namespace ChessRogue.Core
         public void ApplyMove(Move move)
         {
             var piece = Board.GetPieceAt(move.From);
-            if (piece == null)
-                return;
+            if (piece == null) return;
+
+            // Destination tile
+            var tile = Board.GetTile(move.To);
+
+            // Check tile permission
+            if (tile != null && !tile.CanEnter(piece, move.To, this))
+                return; // illegal by board rule
 
             // Handle captures
             var captured = Board.GetPieceAt(move.To);
@@ -43,23 +51,27 @@ namespace ChessRogue.Core
             Board.MovePiece(move.From, move.To);
             piece.OnMove(move, this);
 
+            // Post-move tile effect
+            tile?.OnEnter(piece, move.To, this);
+
             // Record move
             moveHistory.Add(move);
 
             // Advance turn
-            CurrentPlayer =
-                (CurrentPlayer == PlayerColor.White) ? PlayerColor.Black : PlayerColor.White;
+            CurrentPlayer = (CurrentPlayer == PlayerColor.White) ? PlayerColor.Black : PlayerColor.White;
             TurnNumber++;
+
+            // Trigger "standing on tile" effects for the new current player
+            foreach (var standing in Board.GetAllPieces(CurrentPlayer))
+            {
+                var standingTile = Board.GetTile(standing.Position);
+                standingTile?.OnTurnStart(standing, standing.Position, this);
+            }
         }
 
-        /// <summary>
-        /// Undo the last move by restoring from a previous snapshot.
-        /// (Shallow: assumes pieces are immutable except position).
-        /// </summary>
         public void UndoLastMove()
         {
-            if (moveHistory.Count == 0)
-                return;
+            if (moveHistory.Count == 0) return;
 
             // Rewind by snapshot instead of trying to “reverse apply”
             var previous = CloneFromHistory(moveHistory.Count - 1);
@@ -70,10 +82,6 @@ namespace ChessRogue.Core
             this.moveHistory.AddRange(previous.moveHistory);
         }
 
-        /// <summary>
-        /// Creates a deep snapshot of the state for undo/AI simulation.
-        /// Note: pieces are shallow-copied unless IPiece.Clone() is implemented.
-        /// </summary>
         public GameState Clone()
         {
             var clone = new GameState(Board.Clone(), CurrentPlayer) { TurnNumber = TurnNumber };
@@ -81,10 +89,6 @@ namespace ChessRogue.Core
             return clone;
         }
 
-        /// <summary>
-        /// Returns a snapshot from history N moves deep.
-        /// (Re-applies moves from the beginning on a cloned board).
-        /// </summary>
         private GameState CloneFromHistory(int moveCount)
         {
             var clone = new GameState(Board.Clone(), PlayerColor.White);

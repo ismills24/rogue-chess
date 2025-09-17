@@ -1,5 +1,5 @@
 using ChessRogue.Core;
-using ChessRogue.Core.Rules;
+using ChessRogue.Core.Pieces;
 
 public class King : IPiece
 {
@@ -15,7 +15,7 @@ public class King : IPiece
 
     public IEnumerable<Move> GetPseudoLegalMoves(GameState state)
     {
-        return MovementRules.AdjacentMoves(state, this, includeDiagonals: true);
+        return Movement.AdjacentMoves(state, this, includeDiagonals: true);
     }
 
     public void OnMove(Move move, GameState state) { }

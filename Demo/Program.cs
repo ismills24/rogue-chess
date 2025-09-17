@@ -1,5 +1,5 @@
 ﻿using ChessRogue.Core;
-using ChessRogue.Core.Rules;
+using ChessRogue.Core.Board;
 using ChessRogue.Core.RuleSets;
 using ChessRogue.Core.Runner;
 
@@ -15,7 +15,7 @@ class Program
             state,
             new HumanController(ruleSet), // White
             new HumanController(ruleSet), // Black
-            new CheckmateCondition(ruleSet)
+            ruleSet
         );
 
         while (true)
@@ -25,9 +25,11 @@ class Program
         }
     }
 
-    static Board SetupStandardBoard()
+    static StandardBoard SetupStandardBoard()
     {
-        var board = new Board(8, 8);
+        var board = new StandardBoard(8, 8);
+        Console.WriteLine($"Board created: {board.Width}x{board.Height}");
+
 
         // Pawns
         for (int x = 0; x < 8; x++)
@@ -71,9 +73,8 @@ class Program
         return board;
     }
 
-    static void PrintBoard(Board board)
+    static void PrintBoard(IBoard board)
     {
-        
         Console.WriteLine("  a b c d e f g h");
 
         for (int y = board.Height - 1; y >= 0; y--)
@@ -94,6 +95,7 @@ class Program
             }
             Console.WriteLine($"{y + 1}");
         }
+
         Console.WriteLine("  a b c d e f g h");
         Console.WriteLine();
     }

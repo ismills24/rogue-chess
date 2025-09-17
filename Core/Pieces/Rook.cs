@@ -1,5 +1,5 @@
 using ChessRogue.Core;
-using ChessRogue.Core.Rules;
+using ChessRogue.Core.Pieces;
 
 public class Rook : IPiece
 {
@@ -15,7 +15,7 @@ public class Rook : IPiece
 
     public IEnumerable<Move> GetPseudoLegalMoves(GameState state)
     {
-        return MovementRules.SlidingMoves(
+        return Movement.SlidingMoves(
             state,
             this,
             new[] { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right }

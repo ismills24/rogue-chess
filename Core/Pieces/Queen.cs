@@ -1,5 +1,5 @@
 using ChessRogue.Core;
-using ChessRogue.Core.Rules;
+using ChessRogue.Core.Pieces;
 
 public class Queen : IPiece
 {
@@ -15,7 +15,7 @@ public class Queen : IPiece
 
     public IEnumerable<Move> GetPseudoLegalMoves(GameState state)
     {
-        return MovementRules.SlidingMoves(
+        return Movement.SlidingMoves(
             state,
             this,
             new[]
