@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using UnityEngine;
-
 namespace ChessRogue.Core.Rules
 {
     public static class MovementRules
@@ -11,7 +8,8 @@ namespace ChessRogue.Core.Rules
         public static IEnumerable<Move> SlidingMoves(
             GameState state,
             IPiece piece,
-            IEnumerable<Vector2Int> directions)
+            IEnumerable<Vector2Int> directions
+        )
         {
             foreach (var dir in directions)
             {
@@ -43,7 +41,8 @@ namespace ChessRogue.Core.Rules
         public static IEnumerable<Move> JumpMoves(
             GameState state,
             IPiece piece,
-            IEnumerable<Vector2Int> offsets)
+            IEnumerable<Vector2Int> offsets
+        )
         {
             foreach (var offset in offsets)
             {
@@ -63,14 +62,15 @@ namespace ChessRogue.Core.Rules
         public static IEnumerable<Move> AdjacentMoves(
             GameState state,
             IPiece piece,
-            bool includeDiagonals = true)
+            bool includeDiagonals = true
+        )
         {
             var directions = new List<Vector2Int>
             {
                 Vector2Int.up,
                 Vector2Int.down,
                 Vector2Int.left,
-                Vector2Int.right
+                Vector2Int.right,
             };
 
             if (includeDiagonals)
@@ -100,7 +100,8 @@ namespace ChessRogue.Core.Rules
             GameState state,
             IPiece piece,
             int maxSteps,
-            int direction) // +1 for White (up), -1 for Black (down)
+            int direction
+        ) // +1 for White (up), -1 for Black (down)
         {
             var pos = piece.Position;
 
@@ -127,12 +128,13 @@ namespace ChessRogue.Core.Rules
         public static IEnumerable<Move> DiagonalCaptures(
             GameState state,
             IPiece piece,
-            int direction) // +1 for White, -1 for Black
+            int direction
+        ) // +1 for White, -1 for Black
         {
             var captures = new[]
             {
                 piece.Position + new Vector2Int(1, direction),
-                piece.Position + new Vector2Int(-1, direction)
+                piece.Position + new Vector2Int(-1, direction),
             };
 
             foreach (var target in captures)
@@ -145,26 +147,36 @@ namespace ChessRogue.Core.Rules
                     yield return new Move(piece.Position, target, piece, true);
             }
         }
-        
+
         /// <summary>
         /// En Passant captures (if last move was a double pawn step).
         /// </summary>
-        public static IEnumerable<Move> EnPassantCaptures(GameState state, IPiece pawn, int direction)
+        public static IEnumerable<Move> EnPassantCaptures(
+            GameState state,
+            IPiece pawn,
+            int direction
+        )
         {
-            var lastMove = state.MoveHistory.LastOrDefault();
-            if (lastMove.Piece is Pawn && 
-                Mathf.Abs(lastMove.From.y - lastMove.To.y) == 2)
+            if (state.MoveHistory.Count == 0)
+                yield break;
+
+            var lastMove = state.MoveHistory.Last();
+            if (lastMove.Piece is Pawn && System.Math.Abs(lastMove.From.y - lastMove.To.y) == 2)
             {
-                // The pawn that moved last turn
                 var enemyPawn = lastMove.Piece;
                 var enemyPos = lastMove.To;
 
                 // Check if current pawn is adjacent
-                if (Mathf.Abs(enemyPos.x - pawn.Position.x) == 1 && 
-                    enemyPos.y == pawn.Position.y)
+                if (
+                    System.Math.Abs(enemyPos.x - pawn.Position.x) == 1
+                    && enemyPos.y == pawn.Position.y
+                )
                 {
                     var capturePos = enemyPos + new Vector2Int(0, direction);
-                    if (state.Board.IsInside(capturePos) && state.Board.GetPieceAt(capturePos) == null)
+                    if (
+                        state.Board.IsInside(capturePos)
+                        && state.Board.GetPieceAt(capturePos) == null
+                    )
                     {
                         yield return new Move(pawn.Position, capturePos, pawn, isCapture: true);
                     }

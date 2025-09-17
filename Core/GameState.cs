@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using UnityEngine;
-
 namespace ChessRogue.Core
 {
     public class GameState
@@ -31,7 +28,8 @@ namespace ChessRogue.Core
         public void ApplyMove(Move move)
         {
             var piece = Board.GetPieceAt(move.From);
-            if (piece == null) return;
+            if (piece == null)
+                return;
 
             // Handle captures
             var captured = Board.GetPieceAt(move.To);
@@ -49,9 +47,8 @@ namespace ChessRogue.Core
             moveHistory.Add(move);
 
             // Advance turn
-            CurrentPlayer = (CurrentPlayer == PlayerColor.White)
-                ? PlayerColor.Black
-                : PlayerColor.White;
+            CurrentPlayer =
+                (CurrentPlayer == PlayerColor.White) ? PlayerColor.Black : PlayerColor.White;
             TurnNumber++;
         }
 
@@ -61,7 +58,8 @@ namespace ChessRogue.Core
         /// </summary>
         public void UndoLastMove()
         {
-            if (moveHistory.Count == 0) return;
+            if (moveHistory.Count == 0)
+                return;
 
             // Rewind by snapshot instead of trying to “reverse apply”
             var previous = CloneFromHistory(moveHistory.Count - 1);
@@ -78,10 +76,7 @@ namespace ChessRogue.Core
         /// </summary>
         public GameState Clone()
         {
-            var clone = new GameState(Board.Clone(), CurrentPlayer)
-            {
-                TurnNumber = TurnNumber
-            };
+            var clone = new GameState(Board.Clone(), CurrentPlayer) { TurnNumber = TurnNumber };
             clone.moveHistory.AddRange(moveHistory);
             return clone;
         }

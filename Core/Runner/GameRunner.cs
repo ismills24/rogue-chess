@@ -10,10 +10,12 @@ namespace ChessRogue.Core.Runner
         private readonly IPlayerController black;
         private readonly IWinCondition winCondition;
 
-        public GameRunner(GameState initialState, 
-                          IPlayerController whiteController, 
-                          IPlayerController blackController, 
-                          IWinCondition winCondition)
+        public GameRunner(
+            GameState initialState,
+            IPlayerController whiteController,
+            IPlayerController blackController,
+            IWinCondition winCondition
+        )
         {
             this.state = initialState;
             this.white = whiteController;
@@ -32,13 +34,11 @@ namespace ChessRogue.Core.Runner
                 return;
             }
 
-            IPlayerController controller = state.CurrentPlayer == PlayerColor.White
-                ? white
-                : black;
+            IPlayerController controller = state.CurrentPlayer == PlayerColor.White ? white : black;
 
             var move = controller.SelectMove(state);
 
-            if (move == null)
+            if (move is null)
             {
                 Console.WriteLine($"{state.CurrentPlayer} has no legal moves!");
                 return;

@@ -1,8 +1,6 @@
-using UnityEngine;
-
 namespace ChessRogue.Core
 {
-    public struct Move
+    public class Move
     {
         public Vector2Int From { get; }
         public Vector2Int To { get; }
@@ -19,8 +17,27 @@ namespace ChessRogue.Core
 
         public override string ToString()
         {
+            string fromFile = ((char)('a' + From.x)).ToString();
+            string fromRank = (From.y + 1).ToString();
+            string toFile = ((char)('a' + To.x)).ToString();
+            string toRank = (To.y + 1).ToString();
+
             string capture = IsCapture ? "x" : "-";
-            return $"{Piece.Name} {From} {capture} {To}";
+            return $"{NameSymbol(Piece)} {fromFile}{fromRank}{capture}{toFile}{toRank}";
+        }
+
+        private string NameSymbol(IPiece piece)
+        {
+            return piece.Name switch
+            {
+                "Pawn" => "",
+                "Knight" => "N",
+                "King" => "K",
+                "Queen" => "Q",
+                "Rook" => "R",
+                "Bishop" => "B",
+                _ => piece.Name.Substring(0, 1),
+            };
         }
     }
 }

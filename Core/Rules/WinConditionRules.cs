@@ -29,7 +29,8 @@ namespace ChessRogue.Core.Rules
         public bool IsGameOver(GameState state, out PlayerColor winner)
         {
             var currentPlayer = state.CurrentPlayer;
-            var opponent = currentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White;
+            var opponent =
+                currentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White;
 
             // Check if current player's king is under attack
             bool kingInCheck = IsKingInCheck(state, currentPlayer);
@@ -58,10 +59,10 @@ namespace ChessRogue.Core.Rules
 
         private bool IsKingInCheck(GameState state, PlayerColor kingColor)
         {
-            var king = state.Board.GetAllPieces(kingColor)
-                                  .FirstOrDefault(p => p is King);
+            var king = state.Board.GetAllPieces(kingColor).FirstOrDefault(p => p is King);
 
-            if (king == null) return true; // dead king = checkmate
+            if (king == null)
+                return true; // dead king = checkmate
 
             var opponent = kingColor == PlayerColor.White ? PlayerColor.Black : PlayerColor.White;
             var opponentPieces = state.Board.GetAllPieces(opponent);
