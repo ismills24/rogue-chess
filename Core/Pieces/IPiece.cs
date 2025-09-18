@@ -12,7 +12,6 @@ namespace ChessRogue.Core
         void OnMove(Move move, GameState state);
         void OnCapture(GameState state);
 
-        // NEW: deep clone this piece
         IPiece Clone();
     }
 }

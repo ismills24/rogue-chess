@@ -23,6 +23,9 @@ public class BoardForm : Form
     private IPlayerController? _whitePlayer;
     private IPlayerController? _blackPlayer;
 
+    private Vector2Int? _lastMoveFrom;
+    private Vector2Int? _lastMoveTo;
+
     private readonly TableLayoutPanel _grid = new()
     {
         Dock = DockStyle.Fill,
@@ -43,6 +46,7 @@ public class BoardForm : Form
         Text = "Rogue Chess";
         StartPosition = FormStartPosition.CenterScreen;
         Controls.Add(_grid);
+        ClientSize = new Size(640, 660);
 
         // Menu: New…, quick presets
         var menu = new MenuStrip();
@@ -205,8 +209,10 @@ public class BoardForm : Form
                     Dock = DockStyle.Fill,
                     Margin = Padding.Empty,
                     Padding = Padding.Empty,
-                    FlatStyle = FlatStyle.Standard,
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = Color.Beige,
                 };
+                btn.FlatAppearance.BorderSize = 0;
                 btn.Tag = new Vector2Int(x, y);
                 btn.Click += OnCellClick;
 
@@ -239,28 +245,24 @@ public class BoardForm : Form
 
         var state = _runner.GetState();
 
-        // Only accept clicks on a human turn
         if (!IsHumanTurn(state))
             return;
 
         var pos = (Vector2Int)((Button)sender!).Tag;
         var piece = state.Board.GetPieceAt(pos);
 
-        // First click: select & highlight
+        // First click: select
         if (_selected == null)
         {
             if (piece != null && piece.Owner == state.CurrentPlayer)
             {
                 _selected = pos;
-                _legalTargets = _ruleset.GetLegalMoves(state, piece).Select(m => m.To).ToArray();
                 RenderBoard();
-                foreach (var t in _legalTargets)
-                    _cells[t.x, t.y].BackColor = Color.Yellow;
             }
             return;
         }
 
-        // Second click: try to play
+        // Second click: attempt move
         var from = _selected.Value;
         var legalMove = state
             .Board.GetAllPieces(state.CurrentPlayer)
@@ -270,26 +272,23 @@ public class BoardForm : Form
         var human = CurrentHuman(state);
         if (legalMove != null)
         {
+            _lastMoveFrom = legalMove.From;
+            _lastMoveTo = legalMove.To;
+
             human?.SubmitMove(legalMove);
         }
         else
         {
-            // allow reselection or cancel
             if (piece != null && piece.Owner == state.CurrentPlayer)
             {
                 _selected = pos;
-                _legalTargets = _ruleset.GetLegalMoves(state, piece).Select(m => m.To).ToArray();
                 RenderBoard();
-                foreach (var t in _legalTargets)
-                    _cells[t.x, t.y].BackColor = Color.Yellow;
                 return;
             }
-
             human?.SubmitMove(null);
         }
 
         _selected = null;
-        _legalTargets = Array.Empty<Vector2Int>();
         RenderBoard();
     }
 
@@ -299,6 +298,17 @@ public class BoardForm : Form
             return;
 
         var state = _runner.GetState();
+
+        // Track the last move from history
+        _lastMoveFrom = null;
+        _lastMoveTo = null;
+        if (state.MoveHistory.Count > 0)
+        {
+            var last = state.MoveHistory[^1]; // C# index-from-end
+            _lastMoveFrom = last.From;
+            _lastMoveTo = last.To;
+        }
+
         for (int y = 0; y < state.Board.Height; y++)
         {
             for (int x = 0; x < state.Board.Width; x++)
@@ -308,26 +318,50 @@ public class BoardForm : Form
                 var piece = state.Board.GetPieceAt(pos);
                 var btn = _cells[x, y];
 
-                btn.BackColor = tile switch
+                // Base colors
+                Color lightBrown = Color.FromArgb(240, 217, 181);
+                Color darkBrown = Color.FromArgb(181, 136, 99);
+                var baseColor = (x + y) % 2 == 0 ? lightBrown : darkBrown;
+
+                if (tile is SlipperyTile)
+                    baseColor = Color.LightBlue;
+                else if (tile is ScorchedTile)
+                    baseColor = Color.IndianRed;
+
+                // Highlights
+                if (_selected.HasValue && _selected.Value == pos)
                 {
-                    SlipperyTile => Color.LightBlue,
-                    ScorchedTile => Color.IndianRed,
-                    _ => Color.Beige,
-                };
+                    baseColor = ControlPaint.Dark(baseColor, 0.3f); // actively selected
+                }
+                else if (
+                    (_lastMoveFrom.HasValue && _lastMoveFrom.Value == pos)
+                    || (_lastMoveTo.HasValue && _lastMoveTo.Value == pos)
+                )
+                {
+                    baseColor = ControlPaint.Dark(baseColor, 0.2f); // last move
+                }
 
-                if ((x + y) % 2 == 1)
-                    btn.BackColor = ControlPaint.Light(btn.BackColor);
+                btn.BackColor = baseColor;
 
+                // Piece rendering
                 if (piece != null)
                 {
-                    var c = (piece.Name?.Length ?? 0) > 0 ? piece.Name![0] : '?';
-                    btn.Text = c.ToString();
-                    btn.ForeColor = piece.Owner == PlayerColor.White ? Color.Black : Color.Maroon;
-                    btn.Font = new Font(FontFamily.GenericSansSerif, 12, FontStyle.Bold);
+                    var color = piece.Owner == PlayerColor.White ? "w" : "b";
+                    var name = piece.Name.ToLower();
+                    var key = $"{name}-{color}";
+
+                    var size = Math.Min(btn.Width, btn.Height) - 3;
+                    var bmp = PieceImageCache.RenderSvg(key, size);
+
+                    btn.Text = "";
+                    btn.Image = bmp;
+                    btn.ImageAlign = ContentAlignment.MiddleCenter;
+                    btn.BackgroundImageLayout = ImageLayout.Zoom;
                 }
                 else
                 {
                     btn.Text = "";
+                    btn.Image = null;
                 }
             }
         }

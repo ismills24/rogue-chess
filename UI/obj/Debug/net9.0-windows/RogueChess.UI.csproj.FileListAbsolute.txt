@@ -18,3 +18,5 @@ C:\Users\Isaac\Documents\Git\rogue-chess\UI\obj\Debug\net9.0-windows\refint\Rogu
 C:\Users\Isaac\Documents\Git\rogue-chess\UI\obj\Debug\net9.0-windows\RogueChess.UI.pdb
 C:\Users\Isaac\Documents\Git\rogue-chess\UI\obj\Debug\net9.0-windows\RogueChess.UI.genruntimeconfig.cache
 C:\Users\Isaac\Documents\Git\rogue-chess\UI\obj\Debug\net9.0-windows\ref\RogueChess.UI.dll
+C:\Users\Isaac\Documents\Git\rogue-chess\UI\bin\Debug\net9.0-windows\ExCSS.dll
+C:\Users\Isaac\Documents\Git\rogue-chess\UI\bin\Debug\net9.0-windows\Svg.dll
