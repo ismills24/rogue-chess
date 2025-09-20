@@ -13,12 +13,16 @@ namespace RogueChess.Engine.Pieces
         public string Name { get; }
         public PlayerColor Owner { get; }
         public Vector2Int Position { get; set; }
+        public int MovesMade { get; set; }
+        public int CapturesMade { get; set; }
 
         protected PieceBase(string name, PlayerColor owner, Vector2Int position)
         {
             Name = name;
             Owner = owner;
             Position = position;
+            MovesMade = 0;
+            CapturesMade = 0;
         }
 
         // ---------------- Movement ----------------
@@ -56,5 +60,16 @@ namespace RogueChess.Engine.Pieces
         protected abstract IPiece CreateClone();
 
         public override string ToString() => $"{Name} ({Owner}) at {Position}";
+
+        public void IncrementMoves()
+        {
+            MovesMade++;
+        }
+
+        // Call when the piece captures
+        public void IncrementCaptures()
+        {
+            CapturesMade++;
+        }
     }
 }

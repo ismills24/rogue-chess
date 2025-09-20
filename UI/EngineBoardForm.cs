@@ -671,7 +671,7 @@ namespace RogueChess.UI
         {
             if (_gameEngine != null && _gameEngine.CurrentIndex > 0)
             {
-                _gameEngine.Undo();
+                _gameEngine.UndoLastMove();
                 _selected = null;
                 _legalTargets = Array.Empty<Vector2Int>();
                 UpdateDisplay();
@@ -683,7 +683,7 @@ namespace RogueChess.UI
         {
             if (_gameEngine != null && _gameEngine.CurrentIndex < _gameEngine.HistoryCount - 1)
             {
-                _gameEngine.Redo();
+                _gameEngine.RedoLastMove();
                 _selected = null;
                 _legalTargets = Array.Empty<Vector2Int>();
                 UpdateDisplay();

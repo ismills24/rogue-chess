@@ -79,6 +79,55 @@ namespace RogueChess.Engine
             if (index >= 0 && index < _history.Count)
                 _currentIndex = index;
         }
+
+        public void UndoLastMove()
+        {
+            // Find the last canonical event that was caused by a player action
+            var lastPlayerIndex = -1;
+            for (int i = _currentIndex; i >= 0; i--)
+            {
+                if (_history[i].Event.IsPlayerAction)
+                {
+                    lastPlayerIndex = i;
+                    break;
+                }
+            }
+
+            if (lastPlayerIndex <= 0)
+                return; // no moves to undo
+
+            // Now walk backwards until we reach the TurnAdvanced BEFORE this move
+            int rewindTo = lastPlayerIndex - 1;
+            for (int i = lastPlayerIndex - 1; i >= 0; i--)
+            {
+                if (_history[i].Event.Type == GameEventType.TurnAdvanced)
+                {
+                    rewindTo = i;
+                    break;
+                }
+            }
+
+            _currentIndex = rewindTo;
+        }
+
+        public void RedoLastMove()
+        {
+            // Find the next TurnAdvanced event after the current index
+            int redoTo = -1;
+            for (int i = _currentIndex + 1; i < _history.Count; i++)
+            {
+                if (_history[i].Event.Type == GameEventType.TurnAdvanced)
+                {
+                    redoTo = i;
+                    break;
+                }
+            }
+
+            if (redoTo == -1)
+                return; // nothing to redo
+
+            _currentIndex = redoTo;
+        }
     }
 
     public record TurnAdvancedPayload(PlayerColor NewPlayer, int TurnNumber);

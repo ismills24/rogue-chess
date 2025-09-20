@@ -12,6 +12,8 @@ namespace RogueChess.Engine.Interfaces
         string Name { get; }
         PlayerColor Owner { get; }
         Vector2Int Position { get; set; }
+        int MovesMade { get; set; }
+        int CapturesMade { get; set; }
 
         /// <summary>
         /// Return pseudo-legal moves from this piece in the given state.

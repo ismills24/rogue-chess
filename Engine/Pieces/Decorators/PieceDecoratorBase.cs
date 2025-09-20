@@ -25,6 +25,16 @@ namespace RogueChess.Engine.Pieces.Decorators
             get => Inner.Position;
             set => Inner.Position = value;
         }
+        public virtual int MovesMade
+        {
+            get => Inner.MovesMade;
+            set => Inner.MovesMade = value;
+        }
+        public virtual int CapturesMade
+        {
+            get => Inner.CapturesMade;
+            set => Inner.CapturesMade = value;
+        }
 
         /// <summary>
         /// Default behavior: forward to inner piece.
