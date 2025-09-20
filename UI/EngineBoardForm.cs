@@ -74,8 +74,6 @@ namespace RogueChess.UI
             return color == PlayerColor.White ? _whiteHuman : _blackHuman;
         }
 
-        
-
         public EngineBoardForm()
         {
             InitializeComponent();
@@ -400,14 +398,15 @@ namespace RogueChess.UI
             // Add visual indicators
             if (hasExploding)
             {
-                cell.FlatAppearance.BorderColor = Color.Orange;
-                cell.FlatAppearance.BorderSize = 2;
+                cell.Text = cell.Text + "*";
+                cell.ForeColor = Color.Orange;
+                cell.Font = new Font("Arial", 8, FontStyle.Bold);
             }
 
             if (hasStatusEffect)
             {
                 // Add a small indicator for status effects
-                cell.Text = "●";
+                cell.Text = cell.Text + "●";
                 cell.ForeColor = Color.Red;
                 cell.Font = new Font("Arial", 8, FontStyle.Bold);
             }
@@ -417,7 +416,7 @@ namespace RogueChess.UI
                 // Add a cross indicator for martyr
                 if (string.IsNullOrEmpty(cell.Text))
                 {
-                    cell.Text = "✚";
+                    cell.Text = cell.Text + "✚";
                     cell.ForeColor = Color.Blue;
                     cell.Font = new Font("Arial", 8, FontStyle.Bold);
                 }

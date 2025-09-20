@@ -29,20 +29,17 @@ namespace RogueChess.Engine.Pieces.Decorators
                     // martyr dies instead of ally, and attacker’s move is cancelled
                     return new[]
                     {
+                        // Martyr dies
                         new CandidateEvent(
                             GameEventType.PieceDestroyed,
                             false,
                             new PieceDestroyedPayload(Inner, "Died protecting an ally")
                         ),
+                        // Ally is teleported to martyr’s old square
                         new CandidateEvent(
-                            GameEventType.MoveCancelled,
+                            GameEventType.MoveApplied,
                             false,
-                            new MoveCancelledPayload(
-                                capturePayload.Target, // the ally’s attacker piece
-                                state.Board.GetPieceAtPositionOfOwner(state.CurrentPlayer)?.Position
-                                ?? new Vector2Int(-1, -1), // fallback
-                                target.Position
-                            )
+                            new MovePayload(target, target.Position, Inner.Position)
                         ),
                     };
                 }

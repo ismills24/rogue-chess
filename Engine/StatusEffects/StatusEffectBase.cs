@@ -11,7 +11,15 @@ namespace RogueChess.Engine.StatusEffects
     {
         public abstract string Name { get; }
 
-        public abstract IEnumerable<CandidateEvent> OnTurnStart(IPiece piece, GameState state);
+        public virtual IEnumerable<CandidateEvent> OnTurnStart(IPiece piece, GameState state)
+        {
+            yield break;
+        }
+
+        public virtual IEnumerable<CandidateEvent> OnTurnEnd(IPiece piece, GameState state)
+        {
+            yield break;
+        }
 
         public virtual int ValueModifier() => 0;
 

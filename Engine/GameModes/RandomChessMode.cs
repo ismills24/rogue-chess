@@ -72,12 +72,7 @@ namespace RogueChess.Engine.GameModes
                 typeof(Bishop),
                 typeof(Queen),
             };
-            var decoratorTypes = new Type[]
-            {
-                typeof(ExplodingDecorator),
-                typeof(StatusEffectDecorator),
-                typeof(MartyrDecorator),
-            };
+            var decoratorTypes = new Type[] { typeof(ExplodingDecorator), typeof(MartyrDecorator) };
 
             // Calculate how many pieces to place (max 50% of board, but at least 2 per side)
             var totalSquares = _boardWidth * _boardHeight;

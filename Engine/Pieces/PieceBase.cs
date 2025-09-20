@@ -40,6 +40,11 @@ namespace RogueChess.Engine.Pieces
             yield break;
         }
 
+        public virtual IEnumerable<CandidateEvent> OnTurnEnd(GameState state)
+        {
+            yield break;
+        }
+
         // ---------------- Value & Cloning ----------------
         public abstract int GetValue();
 

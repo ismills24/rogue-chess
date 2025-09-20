@@ -37,6 +37,13 @@ namespace RogueChess.Engine.Pieces.Decorators
             }
         }
 
+        public override IEnumerable<CandidateEvent> OnTurnEnd(GameState state)
+        {
+            foreach (var status in _statuses.ToList())
+            foreach (var ev in status.OnTurnEnd(Inner, state))
+                yield return ev;
+        }
+
         public override int GetValue()
         {
             var baseValue = Inner.GetValue();

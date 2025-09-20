@@ -122,5 +122,10 @@ namespace RogueChess.Engine.Pieces.Decorators
         {
             return Inner.OnTurnStart(state);
         }
+
+        public virtual IEnumerable<CandidateEvent> OnTurnEnd(GameState state)
+        {
+            return Inner.OnTurnEnd(state);
+        }
     }
 }

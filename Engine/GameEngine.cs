@@ -37,7 +37,7 @@ namespace RogueChess.Engine
             _blackController =
                 blackController ?? throw new ArgumentNullException(nameof(blackController));
 
-            // Add initial state to history
+            // Add initial state to history (White to move, Turn 1)
             var initialEvent = new GameEvent(
                 Guid.NewGuid(),
                 GameEventType.TurnAdvanced,
@@ -57,46 +57,62 @@ namespace RogueChess.Engine
         public event Action<GameEvent>? OnEventPublished;
 
         /// <summary>
-        /// Run one complete turn: tick effects, get move, process, advance.
+        /// Run one complete turn: TurnStart → Select/Process Move → TurnEnd → Advance Turn.
         /// </summary>
         public void RunTurn()
         {
             if (IsGameOver())
                 return;
 
-            var currentState = CurrentState;
-            var currentPlayer = currentState.CurrentPlayer;
-
-            // 1. Tick turn start effects
-            foreach (var candidateEvent in TickTurnStart(currentState))
-            {
+            // Turn start effects for the CURRENT player
+            foreach (var candidateEvent in TickTurnStart(CurrentState))
                 Commit(candidateEvent);
-            }
 
-            // 2. Get player move
+            // Get move from the CURRENT player
             var controller =
-                currentPlayer == PlayerColor.White ? _whiteController : _blackController;
-            var move = controller.SelectMove(currentState);
+                CurrentState.CurrentPlayer == PlayerColor.White
+                    ? _whiteController
+                    : _blackController;
 
-            if (move == null)
+            var move = controller.SelectMove(CurrentState);
+            if (move != null)
             {
-                // Player couldn't make a move - checkmate/stalemate handled by ruleset
-                return;
+                // Process the move (no advancing or end-of-turn here)
+                ProcessMove(move, CurrentState);
             }
 
-            // 3. Process the move
-            ProcessMove(move, currentState);
+            // End-of-turn effects for the SAME player who just took the turn
+            foreach (var ev in TickTurnEnd(CurrentState))
+                Commit(ev);
+
+            // Finally, advance the turn to the other player
+            var afterEndState = CurrentState;
+            var nextPlayer =
+                afterEndState.CurrentPlayer == PlayerColor.White
+                    ? PlayerColor.Black
+                    : PlayerColor.White;
+
+            var turnAdvancedEvent = new CandidateEvent(
+                GameEventType.TurnAdvanced,
+                false,
+                new TurnAdvancedPayload(nextPlayer, afterEndState.TurnNumber + 1)
+            );
+            Commit(turnAdvancedEvent);
         }
 
         public void ProcessMove(Move move) => ProcessMove(move, CurrentState);
 
+        /// <summary>
+        /// Apply the consequences of a single move (captures, movement, tiles, piece hooks).
+        /// NOTE: No end-of-turn and no turn-advance in here.
+        /// </summary>
         private void ProcessMove(Move move, GameState currentState)
         {
             var piece = currentState.Board.GetPieceAt(move.From);
             if (piece == null)
                 return;
 
-            // 1. Handle capture first
+            // 1) Capture (emit PieceCaptured and target's OnCapture)
             var capturedPiece = currentState.Board.GetPieceAt(move.To);
             if (capturedPiece != null)
             {
@@ -108,12 +124,11 @@ namespace RogueChess.Engine
 
                 var result = Commit(captureEvent);
                 if (result == null)
-                    return; // cancelled by hook
-
+                    return; // cancelled by a hook (e.g., guardian nullifies)
                 if (result.Type == GameEventType.MoveCancelled)
-                    return; // martyr or guardian cancelled the move
+                    return; // martyr/guardian cancelled the move
 
-                foreach (var ev in capturedPiece.OnCapture(currentState))
+                foreach (var ev in capturedPiece.OnCapture(CurrentState))
                 {
                     var extra = Commit(ev);
                     if (extra == null || extra.Type == GameEventType.MoveCancelled)
@@ -121,7 +136,7 @@ namespace RogueChess.Engine
                 }
             }
 
-            // 2. Apply the move itself
+            // 2) Apply the move
             var moveEvent = new CandidateEvent(
                 GameEventType.MoveApplied,
                 true,
@@ -132,49 +147,35 @@ namespace RogueChess.Engine
             if (moveResult == null || moveResult.Type == GameEventType.MoveCancelled)
                 return;
 
-            // 3. Piece-specific events
-            foreach (var ev in piece.OnMove(move, currentState))
+            // 3) Piece-specific post-move effects
+            foreach (var ev in piece.OnMove(move, CurrentState))
             {
                 var extra = Commit(ev);
                 if (extra == null || extra.Type == GameEventType.MoveCancelled)
                     return;
             }
 
-            // 4. Tile entry events
-            var destinationTile = currentState.Board.GetTile(move.To);
-            foreach (var ev in destinationTile.OnEnter(piece, move.To, currentState))
+            // 4) Tile entry effects (on the destination tile)
+            var destinationTile = CurrentState.Board.GetTile(move.To);
+            foreach (var ev in destinationTile.OnEnter(piece, move.To, CurrentState))
             {
                 var extra = Commit(ev);
                 if (extra == null || extra.Type == GameEventType.MoveCancelled)
                     return;
             }
 
-            // 5. Tick turn start again (statuses, tiles may trigger)
-            foreach (var ev in TickTurnStart(currentState))
-                Commit(ev);
-
-            // 6. Advance turn
-            var turnAdvancedEvent = new CandidateEvent(
-                GameEventType.TurnAdvanced,
-                false,
-                new TurnAdvancedPayload(
-                    currentState.CurrentPlayer == PlayerColor.White
-                        ? PlayerColor.Black
-                        : PlayerColor.White,
-                    currentState.TurnNumber + 1
-                )
-            );
-            Commit(turnAdvancedEvent);
+            // 5) Optional: immediate "mid-turn" ticks if your design needs them.
+            // In our model, we keep start and end ticks only, so nothing here.
         }
 
         /// <summary>
-        /// Tick turn start effects for all pieces and tiles.
+        /// Tick turn-start effects for all pieces and tiles of the current player.
         /// </summary>
         private IEnumerable<CandidateEvent> TickTurnStart(GameState state)
         {
             var currentPlayer = state.CurrentPlayer;
 
-            // 1. Tiles tick
+            // Tiles tick
             foreach (var piece in state.Board.GetAllPieces(currentPlayer))
             {
                 var tile = state.Board.GetTile(piece.Position);
@@ -182,10 +183,22 @@ namespace RogueChess.Engine
                     yield return ev;
             }
 
-            // 2. Pieces tick
+            // Pieces tick
             foreach (var piece in state.Board.GetAllPieces(currentPlayer))
             {
                 foreach (var ev in piece.OnTurnStart(state))
+                    yield return ev;
+            }
+        }
+
+        /// <summary>
+        /// Tick end-of-turn effects for all pieces of the current player.
+        /// </summary>
+        private IEnumerable<CandidateEvent> TickTurnEnd(GameState state)
+        {
+            foreach (var piece in state.Board.GetAllPieces(state.CurrentPlayer))
+            {
+                foreach (var ev in piece.OnTurnEnd(state))
                     yield return ev;
             }
         }
@@ -198,6 +211,7 @@ namespace RogueChess.Engine
             var currentState = CurrentState;
             var pending = new List<CandidateEvent> { candidate };
 
+            // Run hooks; each hook can cancel or replace events
             foreach (var hook in HookCollector.CollectHooks(currentState))
             {
                 var nextPending = new List<CandidateEvent>();
@@ -208,14 +222,14 @@ namespace RogueChess.Engine
 
                     if (result == null)
                     {
-                        // This event is cancelled entirely
+                        // Entirely cancelled
                         continue;
                     }
 
                     var asList = result.ToList();
                     if (asList.Count == 0)
                     {
-                        // Keep the original event
+                        // Keep original
                         nextPending.Add(cand);
                     }
                     else
@@ -232,6 +246,7 @@ namespace RogueChess.Engine
 
             GameEvent? lastCanonical = null;
 
+            // Apply each resulting candidate in order
             foreach (var cand in pending)
             {
                 var canonical = new GameEvent(
@@ -244,6 +259,7 @@ namespace RogueChess.Engine
 
                 var newState = ApplyEventToState(canonical, currentState);
 
+                // Trim redo branch if needed
                 if (_currentIndex < _history.Count - 1)
                     _history.RemoveRange(_currentIndex + 1, _history.Count - (_currentIndex + 1));
 
@@ -334,7 +350,7 @@ namespace RogueChess.Engine
                         if (newBoard.GetPieceAt(pos) != null)
                             newBoard.RemovePiece(pos);
                     }
-                    // StatusTickPayload = no state change
+                    // StatusTickPayload = no board mutation
                     break;
 
                 case GameEventType.PieceDestroyed:

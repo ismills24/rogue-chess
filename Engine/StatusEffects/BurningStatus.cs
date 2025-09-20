@@ -16,7 +16,7 @@ namespace RogueChess.Engine.StatusEffects
 
         private BurningStatus(int duration) => Duration = duration;
 
-        public override IEnumerable<CandidateEvent> OnTurnStart(IPiece piece, GameState state)
+        public override IEnumerable<CandidateEvent> OnTurnEnd(IPiece piece, GameState state)
         {
             Duration--;
 

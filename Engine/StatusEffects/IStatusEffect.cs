@@ -16,6 +16,8 @@ namespace RogueChess.Engine.StatusEffects
         /// </summary>
         IEnumerable<CandidateEvent> OnTurnStart(IPiece piece, GameState state);
 
+        IEnumerable<CandidateEvent> OnTurnEnd(IPiece piece, GameState state);
+
         /// <summary>
         /// How much this status modifies the piece’s value (positive or negative).
         /// Default is 0.
