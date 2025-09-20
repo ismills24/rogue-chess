@@ -1,63 +1,70 @@
-# Rogue Chess — Core API
+# Rogue Chess — Core Engine
 
 A modular C# framework for experimenting with chess-like roguelike mechanics.
-This library is engine-agnostic (usable outside Unity) and provides the simulation backend for the Rogue Chess project.
+This library is engine-agnostic (usable outside Unity) and provides the full simulation backend for the Rogue Chess project.
 
-## ✨ High-Level Concepts
+## ✨ Core Concepts
 
-- **Pieces:** Implement `IPiece`. Responsible for exposing pseudo-legal moves and responding to move/capture hooks. Can be decorated to gain new abilities or carry status effects.
-- **Boards & Tiles:** Implement `IBoard` and `ITile`. Boards hold piece and tile state; tiles provide entry/turn effects (e.g. slippery, scorched).
-- **Rulesets:** Implement `IRuleSet`. Define how pseudo-legal moves are filtered into legal moves, and determine win conditions (checkmate, survival, etc.).
-- **GameState:** Immutable-ish snapshot of the current board, player turn, move history. Provides cloning, undo, and move application.
-- **GameRunner:** Orchestrates turns, enforces rulesets, publishes events.
-- **Events:** All state changes emit `GameEvent`s, allowing UIs or animations to subscribe without being entangled in the core logic.
-- **Status Effects & Decorators:** Extend pieces with runtime abilities (burning, exploding, etc.) without rewriting base classes.
+**Pieces:** Implement `IPiece`. Pieces expose pseudo-legal moves and can be decorated with abilities (exploding, martyr, etc.) or carry status effects (burning, poisoned).
 
-## 📂 Folder Structure
+**Boards & Tiles:** Implement `IBoard` and `ITile`. Boards store piece/tile state; tiles apply effects like sliding, burning, or protecting.
+
+**Rulesets:** Implement `IRuleSet`. Decide how pseudo-legal moves become legal moves and determine win conditions.
+
+**GameState:** Immutable snapshot of the board + turn. Supports cloning, simulation, undo/redo, and evaluation.
+
+**GameEngine:** Central orchestrator. Runs turns, applies moves through a candidate→hooks→commit pipeline, and maintains canonical history.
+
+**Events:** All state changes emit `GameEvent`s, which UIs or AI can subscribe to.
+
+**Decorators & Status Effects:** Extend pieces dynamically at runtime with modular abilities.
+
+**Controllers (AI/Human):** Decide moves for each side. Includes `RandomAIController` and `MinimaxAIController` (depth search).
+
+## �� Folder Structure
 
 ```
-Core/
+Engine/
  ├── Board/
- │    ├── IBoard.cs           # Board contract
- │    ├── BoardBase.cs        # Default implementation
- │    ├── StandardBoard.cs    # 8x8 chess board
+ │    ├── IBoard.cs
+ │    ├── Board.cs
  │    └── Tiles/
- │         ├── ITile.cs
  │         ├── StandardTile.cs
  │         ├── ScorchedTile.cs
- │         └── SlipperyTile.cs
+ │         ├── SlipperyTile.cs
+ │         └── GuardianTile.cs
  │
  ├── Pieces/
- │    ├── IPiece.cs           # Base interface
- │    ├── Helpers/Movement.cs # Sliding, jumping, pawn moves, etc.
- │    ├── King.cs …           # All standard chess pieces
- │    └── Decorators/
- │         ├── ExplodingDecorator.cs
- │         └── StatusEffectDecorator.cs
+ │    ├── King.cs … Pawn.cs
+ │    ├── Decorators/
+ │    │     ├── ExplodingDecorator.cs
+ │    │     ├── MartyrDecorator.cs
+ │    │     └── StatusEffectDecorator.cs
+ │    └── PieceHelpers.cs  # e.g. PieceValueCalculator
+ │
+ ├── StatusEffects/
+ │    ├── IStatusEffect.cs
+ │    ├── BurningStatus.cs
+ │    └── … (more effects)
  │
  ├── RuleSets/
  │    ├── IRuleSet.cs
  │    ├── StandardChessRuleSet.cs
- │    └── … (boss-fight rulesets here)
+ │    ├── LastPieceStandingRuleSet.cs
+ │    └── … (custom)
  │
- ├── WinConditions/
- │    ├── IWinCondition.cs
- │    └── CheckmateCondition.cs
- │
- ├── StatusEffects/
- │    ├── IStatusEffect.cs
- │    ├── IStatusEffectCarrier.cs
- │    └── BurningStatus.cs
- │
- ├── Events/
- │    ├── GameEvent.cs
- │    ├── GameEventType.cs
- │
- ├── Runner/
- │    ├── GameRunner.cs
+ ├── Controllers/
  │    ├── IPlayerController.cs
  │    ├── HumanController.cs
- │    └── RandomAIController.cs
+ │    ├── RandomAIController.cs
+ │    └── MinimaxAIController.cs
+ │
+ ├── Engine/
+ │    ├── GameEngine.cs      # canonical state + history
+ │    ├── ProcessMove.cs     # move application pipeline
+ │    ├── Turns.cs           # turn start/end ticks
+ │    ├── Events.cs          # GameEvent, CandidateEvent, payloads
+ │    └── Simulation.cs      # simulate turns for AI
  │
  ├── GameState.cs
  └── Move.cs
@@ -70,169 +77,169 @@ Core/
 ```csharp
 public interface IPiece
 {
-	PlayerColor Owner { get; }
-	Vector2Int Position { get; set; }
-	string Name { get; }
+    PlayerColor Owner { get; }
+    Vector2Int Position { get; set; }
+    string Name { get; }
 
-	IEnumerable<Move> GetPseudoLegalMoves(GameState state);
-	void OnMove(Move move, GameState state);
-	void OnCapture(GameState state);
-	IPiece Clone();
+    IEnumerable<Move> GetPseudoLegalMoves(GameState state);
+    IEnumerable<CandidateEvent> OnMove(Move move, GameState state);
+    IEnumerable<CandidateEvent> OnCapture(GameState state);
+
+    IPiece Clone();
+    int GetValue();  // base value for evaluation
 }
 ```
 
-Use helpers from `Movement.cs` to implement moves.  
-Pieces should only produce pseudo-legal moves; legality is determined by the ruleset.
+Pieces output pseudo-legal moves. Legality is enforced by the ruleset.
 
 ### Boards & Tiles
 
 ```csharp
 public interface IBoard
 {
-	int Width { get; }
-	int Height { get; }
+    int Width { get; }
+    int Height { get; }
 
-	IPiece GetPieceAt(Vector2Int pos);
-	void PlacePiece(IPiece piece, Vector2Int pos);
-	void RemovePiece(Vector2Int pos);
-	void MovePiece(Vector2Int from, Vector2Int to);
-	IEnumerable<IPiece> GetAllPieces(PlayerColor color);
+    IPiece? GetPieceAt(Vector2Int pos);
+    void PlacePiece(IPiece piece, Vector2Int pos);
+    void RemovePiece(Vector2Int pos);
+    void MovePiece(Vector2Int from, Vector2Int to);
 
-	bool IsInBounds(Vector2Int pos);
-	ITile GetTile(Vector2Int pos);
-	void SetTile(Vector2Int pos, ITile tile);
+    IEnumerable<IPiece> GetAllPieces(PlayerColor color);
+    bool IsInBounds(Vector2Int pos);
 
-	IBoard Clone();
+    ITile GetTile(Vector2Int pos);
+    void SetTile(Vector2Int pos, ITile tile);
+
+    IBoard Clone();
 }
 
 public interface ITile
 {
-	bool CanEnter(IPiece piece, Vector2Int pos, GameState state);
-	IEnumerable<GameEvent> OnEnter(IPiece piece, Vector2Int pos, GameState state);
-	IEnumerable<GameEvent> OnTurnStart(IPiece piece, Vector2Int pos, GameState state);
+    bool CanEnter(IPiece piece, Vector2Int pos, GameState state);
+    IEnumerable<CandidateEvent> OnEnter(IPiece piece, Vector2Int pos, GameState state);
+    IEnumerable<CandidateEvent> OnTurnStart(IPiece piece, Vector2Int pos, GameState state);
 }
 ```
-
-**Examples:**
-
-- `StandardTile` — does nothing special.
-- `ScorchedTile` — applies a `BurningStatus`.
-- `SlipperyTile` — auto-slides pieces one extra step.
 
 ### Rulesets
 
 ```csharp
 public interface IRuleSet
 {
-	IEnumerable<Move> GetLegalMoves(GameState state, IPiece piece);
-	bool IsGameOver(GameState state, out PlayerColor winner);
+    IEnumerable<Move> GetLegalMoves(GameState state, IPiece piece);
+    bool IsGameOver(GameState state, out PlayerColor winner);
 }
 ```
 
-- `StandardChessRuleSet` filters moves to disallow self-check and uses `CheckmateCondition`.
-- Custom rulesets can ignore check, require survival until X turns, or enforce boss-specific victory conditions.
+- Standard chess ruleset (check, checkmate).
+- Roguelike rulesets (last piece standing, survival waves).
 
 ### Status Effects
 
 ```csharp
 public interface IStatusEffect
 {
-	string Name { get; }
-	int Duration { get; }
-
-	IEnumerable<GameEvent> OnTurnStart(IPiece piece, GameState state);
-	IEnumerable<GameEvent> OnRemove(IPiece piece, GameState state);
-
-	IStatusEffect Clone();
+    string Name { get; }
+    IEnumerable<CandidateEvent> OnTurnStart(IPiece piece, GameState state);
+    int ValueModifier();
+    IStatusEffect Clone();
 }
 ```
 
-- `BurningStatus` — ticks down, destroys piece after N turns.
-- Pieces support effects by being wrapped in a `StatusEffectDecorator`.
+**Example:**
+
+`BurningStatus`: ticks down, eventually destroys the piece.
 
 ### Events
-
-All actions emit `GameEvent`s:
 
 ```csharp
 public enum GameEventType
 {
-	MoveApplied,
-	PieceCaptured,
-	PiecePromoted,
-	TileEffectTriggered,
-	StatusEffectTriggered,
-	TurnAdvanced,
-	GameOver
-}
-
-public class GameEvent
-{
-	public GameEventType Type { get; }
-	public IPiece? Piece { get; }
-	public Vector2Int? From { get; }
-	public Vector2Int? To { get; }
-	public string Message { get; }
+    MoveApplied,
+    MoveCancelled,
+    PieceCaptured,
+    PieceDestroyed,
+    PiecePromoted,
+    TileEffectTriggered,
+    StatusEffectTriggered,
+    StatusTick,
+    TurnAdvanced,
+    GameOver
 }
 ```
 
-Consumers (UI, animation, logging) subscribe to `GameRunner.OnEventPublished`.
+All state changes flow through a candidate → hooks → canonical pipeline.
+Hooks (e.g., `IBeforeEventHook`) can cancel or replace events.
 
-### Game Runner
+### Game Engine
 
 ```csharp
-public class GameRunner
+public partial class GameEngine
 {
-	public event Action<GameEvent>? OnEventPublished;
+    public GameState CurrentState { get; }
+    public event Action<GameEvent>? OnEventPublished;
 
-	public GameRunner(GameState state, IPlayerController white, IPlayerController black, IRuleSet ruleset);
-
-	public void RunTurn();   // Advance one full turn
-	public GameState GetState();
+    public void RunTurn();        // full cycle (turn start → move → end → advance)
+    public void ProcessMove(Move move);
+    public void UndoLastMove();   // undo to last player action
 }
 ```
 
-Handles:
+Split into partials:
 
-- Turn order
-- Applying moves
-- Checking ruleset win conditions
-- Publishing all events (moves, captures, tile/status triggers, game over)
+- `ProcessMove.cs`: captures, moves, tiles, piece effects
+- `Turns.cs`: start/end turn ticks
+- `Events.cs`: `CandidateEvent` → `GameEvent` pipeline
+- `Simulation.cs`: simulate turns for AI search
 
 ### Controllers
 
 ```csharp
 public interface IPlayerController
 {
-	Move? SelectMove(GameState state);
+    Move? SelectMove(GameState state);
 }
 ```
 
-- `HumanController` — CLI input (e2 e4).
-- `RandomAIController` — picks random legal move.
-- Future: AI controller for enemy bosses.
+- `HumanController`: user input
+- `RandomAIController`: random legal move
+- `MinimaxAIController`: depth-N search with evaluation via `PieceValueCalculator`
 
-## 🛠️ Example: Running a Standard Chess Demo
+## 🛠 Example
 
 ```csharp
-var ruleSet = new StandardChessRuleSet();
+var rules = new StandardChessRuleSet();
 var board = new StandardBoard(8, 8);
 
-// Place pieces (see Program.cs for full setup)
-board.PlacePiece(new King(PlayerColor.White, new Vector2Int(4, 0)), new Vector2Int(4, 0));
-board.PlacePiece(new King(PlayerColor.Black, new Vector2Int(4, 7)), new Vector2Int(4, 7));
+// Kings
+board.PlacePiece(new King(PlayerColor.White, new Vector2Int(4,0)), new Vector2Int(4,0));
+board.PlacePiece(new King(PlayerColor.Black, new Vector2Int(4,7)), new Vector2Int(4,7));
 
-var state = new GameState(board, PlayerColor.White);
+var state = GameState.CreateInitial(board, PlayerColor.White);
 
-var runner = new GameRunner(
-	state,
-	new HumanController(ruleSet), 
-	new RandomAIController(ruleSet),
-	ruleSet
+var engine = new GameEngine(
+    state,
+    new MinimaxAIController(rules, depth: 2),
+    new RandomAIController(rules),
+    rules
 );
 
-runner.OnEventPublished += ev => Console.WriteLine($"EVENT: {ev.Message}");
+engine.OnEventPublished += ev => Console.WriteLine($"{ev.Type}: {ev.Payload}");
 
-// Run loop
-while (true)
-	runner.RunTurn();
+while (!engine.IsGameOver())
+    engine.RunTurn();
+```
+```
+
+The README.md has been updated with the new content, properly formatted in markdown. The new version reflects the updated architecture with:
+
+- Split GameEngine partials (ProcessMove.cs, Turns.cs, Events.cs, Simulation.cs)
+- Events/hooks system with CandidateEvent pipeline
+- MinimaxAIController for AI depth search
+- Roguelike mechanics and status effects
+- Updated folder structure matching the current codebase
+- More detailed interface documentation
+- Better organization of core concepts
+
+The markdown formatting includes proper code blocks, headers, lists, and emphasis to make the documentation clear and readable.
