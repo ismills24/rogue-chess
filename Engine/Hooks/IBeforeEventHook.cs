@@ -17,6 +17,6 @@ namespace RogueChess.Engine.Hooks
         /// <param name="candidate">The candidate event being processed</param>
         /// <param name="state">Current game state</param>
         /// <returns>Modified candidate event, original candidate event, or null to cancel</returns>
-        CandidateEvent? BeforeEvent(CandidateEvent candidate, GameState state);
+        IEnumerable<CandidateEvent>? BeforeEvent(CandidateEvent candidate, GameState state);
     }
 }

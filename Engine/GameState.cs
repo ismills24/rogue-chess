@@ -26,7 +26,12 @@ namespace RogueChess.Engine
             MoveHistory = moveHistory.AsReadOnly();
         }
 
-        private GameState(IBoard board, PlayerColor currentPlayer, int turnNumber, List<Move> moveHistory)
+        private GameState(
+            IBoard board,
+            PlayerColor currentPlayer,
+            int turnNumber,
+            List<Move> moveHistory
+        )
         {
             Board = board;
             CurrentPlayer = currentPlayer;
@@ -41,12 +46,7 @@ namespace RogueChess.Engine
         /// </summary>
         public GameState Clone()
         {
-            return new GameState(
-                Board.Clone(),
-                CurrentPlayer,
-                TurnNumber,
-                moveHistory
-            );
+            return new GameState(Board.Clone(), CurrentPlayer, TurnNumber, moveHistory);
         }
 
         /// <summary>
@@ -65,12 +65,13 @@ namespace RogueChess.Engine
             IBoard? board = null,
             PlayerColor? currentPlayer = null,
             int? turnNumber = null,
-            Move? additionalMove = null)
+            Move? additionalMove = null
+        )
         {
             var newBoard = board ?? Board.Clone();
             var newCurrentPlayer = currentPlayer ?? CurrentPlayer;
             var newTurnNumber = turnNumber ?? TurnNumber;
-            
+
             var newMoveHistory = new List<Move>(moveHistory);
             if (additionalMove != null)
             {

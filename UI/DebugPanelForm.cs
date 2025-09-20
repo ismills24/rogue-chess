@@ -34,7 +34,7 @@ namespace RogueChess.UI
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 1
+                RowCount = 1,
             };
             Controls.Add(mainPanel);
 
@@ -42,7 +42,7 @@ namespace RogueChess.UI
             var eventListPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
             };
             mainPanel.Controls.Add(eventListPanel, 0, 0);
 
@@ -50,7 +50,7 @@ namespace RogueChess.UI
             {
                 Text = "Game Events:",
                 Dock = DockStyle.Top,
-                Height = 20
+                Height = 20,
             };
             eventListPanel.Controls.Add(eventListLabel);
 
@@ -58,7 +58,7 @@ namespace RogueChess.UI
             {
                 Dock = DockStyle.Fill,
                 Font = new Font("Consolas", 9),
-                SelectionMode = SelectionMode.One
+                SelectionMode = SelectionMode.One,
             };
             _eventListBox.SelectedIndexChanged += EventListBox_SelectedIndexChanged;
             eventListPanel.Controls.Add(_eventListBox);
@@ -67,7 +67,7 @@ namespace RogueChess.UI
             var detailsPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
             };
             mainPanel.Controls.Add(detailsPanel, 1, 0);
 
@@ -75,7 +75,7 @@ namespace RogueChess.UI
             {
                 Text = "Event Details:",
                 Dock = DockStyle.Top,
-                Height = 20
+                Height = 20,
             };
             detailsPanel.Controls.Add(detailsLabel);
 
@@ -85,23 +85,19 @@ namespace RogueChess.UI
                 Multiline = true,
                 ReadOnly = true,
                 Font = new Font("Consolas", 9),
-                ScrollBars = ScrollBars.Vertical
+                ScrollBars = ScrollBars.Vertical,
             };
             detailsPanel.Controls.Add(_eventDetailsTextBox);
 
             // Control panel (bottom)
-            var controlPanel = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 40
-            };
+            var controlPanel = new Panel { Dock = DockStyle.Bottom, Height = 40 };
             Controls.Add(controlPanel);
 
             _clearButton = new Button
             {
                 Text = "Clear Events",
                 Location = new Point(10, 10),
-                Size = new Size(100, 25)
+                Size = new Size(100, 25),
             };
             _clearButton.Click += ClearButton_Click;
             controlPanel.Controls.Add(_clearButton);
@@ -111,7 +107,7 @@ namespace RogueChess.UI
                 Text = "Auto-scroll to latest",
                 Location = new Point(120, 12),
                 Size = new Size(150, 25),
-                Checked = true
+                Checked = true,
             };
             controlPanel.Controls.Add(_autoScrollCheckBox);
 
@@ -193,17 +189,22 @@ namespace RogueChess.UI
 
             return payload switch
             {
-                MovePayload movePayload => $"Move: {movePayload.Piece.Name} from {movePayload.From} to {movePayload.To}",
-                CapturePayload capturePayload => $"Capture: {capturePayload.Target.Name} at {capturePayload.Target.Position}",
-                TileChangePayload tilePayload => $"Tile Change: {tilePayload.Position} -> {tilePayload.NewTile.GetType().Name}",
-                StatusApplyPayload statusPayload => $"Status: {statusPayload.Effect.GetType().Name} on {statusPayload.Target.Name}",
-                ForcedSlidePayload slidePayload => $"Forced Slide: {slidePayload.Piece.Name} from {slidePayload.From} to {slidePayload.To}",
+                MovePayload movePayload =>
+                    $"Move: {movePayload.Piece.Name} from {movePayload.From} to {movePayload.To}",
+                CapturePayload capturePayload =>
+                    $"Capture: {capturePayload.Target.Name} at {capturePayload.Target.Position}",
+                TileChangePayload tilePayload =>
+                    $"Tile Change: {tilePayload.Position} -> {tilePayload.NewTile.GetType().Name}",
+                StatusApplyPayload statusPayload =>
+                    $"Status: {statusPayload.Effect.GetType().Name} on {statusPayload.Target.Name}",
+                ForcedSlidePayload slidePayload =>
+                    $"Forced Slide: {slidePayload.Piece.Name} from {slidePayload.From} to {slidePayload.To}",
                 // Note: These payload types are defined in the Engine but not yet implemented
                 // For now, we'll handle them generically
                 _ when payload.GetType().Name.Contains("Destroy") => $"Destroy: {payload}",
                 _ when payload.GetType().Name.Contains("Tick") => $"Status Tick: {payload}",
                 _ when payload.GetType().Name.Contains("Turn") => $"Turn: {payload}",
-                _ => payload.ToString() ?? "Unknown"
+                _ => payload.ToString() ?? "Unknown",
             };
         }
     }

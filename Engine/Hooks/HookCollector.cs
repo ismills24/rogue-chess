@@ -1,6 +1,8 @@
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Pieces;
+using RogueChess.Engine.Pieces.Decorators;
 using RogueChess.Engine.Primitives;
+using RogueChess.Engine.Tiles;
 
 namespace RogueChess.Engine.Hooks
 {
@@ -22,7 +24,7 @@ namespace RogueChess.Engine.Hooks
             // Note: Rulesets don't typically provide hooks, but this is the first priority
 
             // 2. Tile hooks
-            foreach (var tile in GetAllTiles(state.Board))
+            foreach (var tile in state.Board.GetAllTiles())
             {
                 if (tile is IBeforeEventHook tileHook)
                 {
@@ -57,25 +59,6 @@ namespace RogueChess.Engine.Hooks
             if (piece is PieceDecoratorBase decorator)
             {
                 CollectPieceHooks(decorator.Inner, hooks);
-            }
-        }
-
-        /// <summary>
-        /// Get all tiles from the board.
-        /// </summary>
-        private static IEnumerable<ITile> GetAllTiles(IBoard board)
-        {
-            for (int x = 0; x < board.Width; x++)
-            {
-                for (int y = 0; y < board.Height; y++)
-                {
-                    var pos = new Vector2Int(x, y);
-                    var tile = board.GetTile(pos);
-                    if (tile != null)
-                    {
-                        yield return tile;
-                    }
-                }
             }
         }
     }

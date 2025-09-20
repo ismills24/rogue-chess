@@ -34,6 +34,8 @@ namespace RogueChess.Engine.Interfaces
         /// </summary>
         int GetValue();
 
+        IEnumerable<CandidateEvent> OnTurnStart(GameState state);
+
         /// <summary>
         /// Deep clone the piece (used when cloning GameStates).
         /// </summary>

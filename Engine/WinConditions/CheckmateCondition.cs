@@ -12,14 +12,15 @@ namespace RogueChess.Engine.WinConditions
         public bool IsGameOver(GameState state, out PlayerColor? winner)
         {
             var currentPlayer = state.CurrentPlayer;
-            var opponent = currentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White;
+            var opponent =
+                currentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White;
 
             bool kingInCheck = CheckRules.IsKingInCheck(state, currentPlayer);
 
             // Get all legal moves for the current player
             var pieces = state.Board.GetAllPieces(currentPlayer);
             var hasLegalMoves = false;
-            
+
             foreach (var piece in pieces)
             {
                 var legalMoves = GetLegalMovesForPiece(state, piece);

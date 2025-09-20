@@ -6,51 +6,52 @@ namespace RogueChess.Engine.Pieces
 {
     /// <summary>
     /// Standard chess pawn piece.
+    /// Handles single/double forward moves and diagonal captures.
     /// </summary>
     public class Pawn : PieceBase
     {
-        public Pawn(PlayerColor owner, Vector2Int position) 
-            : base("Pawn", owner, position)
-        {
-        }
+        public Pawn(PlayerColor owner, Vector2Int position)
+            : base("Pawn", owner, position) { }
+
+        public override int GetValue() => 1;
 
         public override IEnumerable<Move> GetPseudoLegalMoves(GameState state)
         {
             var moves = new List<Move>();
             var direction = Owner == PlayerColor.White ? 1 : -1;
-            var startRank = Owner == PlayerColor.White ? 1 : 6;
+            var startRank = Owner == PlayerColor.White ? 1 : state.Board.Height - 2;
 
-            // Forward move (one square)
+            // Forward 1
             var forwardOne = Position + new Vector2Int(0, direction);
             if (state.Board.IsInBounds(forwardOne) && state.Board.GetPieceAt(forwardOne) == null)
             {
                 moves.Add(new Move(Position, forwardOne, this));
             }
 
-            // Forward move (two squares from start position)
+            // Forward 2 (from start rank)
             if (Position.Y == startRank)
             {
                 var forwardTwo = Position + new Vector2Int(0, direction * 2);
-                if (state.Board.IsInBounds(forwardTwo) && 
-                    state.Board.GetPieceAt(forwardTwo) == null &&
-                    state.Board.GetPieceAt(forwardOne) == null)
+                if (
+                    state.Board.IsInBounds(forwardTwo)
+                    && state.Board.GetPieceAt(forwardTwo) == null
+                    && state.Board.GetPieceAt(forwardOne) == null
+                )
                 {
                     moves.Add(new Move(Position, forwardTwo, this));
                 }
             }
 
             // Diagonal captures
-            var leftCapture = Position + new Vector2Int(-1, direction);
-            var rightCapture = Position + new Vector2Int(1, direction);
-
-            foreach (var capturePos in new[] { leftCapture, rightCapture })
+            foreach (var offset in new[] { -1, 1 })
             {
-                if (state.Board.IsInBounds(capturePos))
+                var diag = Position + new Vector2Int(offset, direction);
+                if (state.Board.IsInBounds(diag))
                 {
-                    var targetPiece = state.Board.GetPieceAt(capturePos);
-                    if (targetPiece != null && targetPiece.Owner != Owner)
+                    var target = state.Board.GetPieceAt(diag);
+                    if (target != null && target.Owner != Owner)
                     {
-                        moves.Add(new Move(Position, capturePos, this, IsCapture: true));
+                        moves.Add(new Move(Position, diag, this, IsCapture: true));
                     }
                 }
             }
@@ -58,14 +59,6 @@ namespace RogueChess.Engine.Pieces
             return moves;
         }
 
-        public override int GetValue()
-        {
-            return 1; // Pawn value
-        }
-
-        protected override IPiece CreateClone()
-        {
-            return new Pawn(Owner, Position);
-        }
+        protected override IPiece CreateClone() => new Pawn(Owner, Position);
     }
 }

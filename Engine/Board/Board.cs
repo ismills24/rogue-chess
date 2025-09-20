@@ -1,13 +1,10 @@
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
+using RogueChess.Engine.Tiles;
 
 namespace RogueChess.Engine.Board
 {
-    /// <summary>
-    /// Basic board implementation for Step 3.
-    /// This is a placeholder that will be expanded in Step 4.
-    /// </summary>
     public class Board : IBoard
     {
         private readonly IPiece?[,] pieces;
@@ -22,13 +19,14 @@ namespace RogueChess.Engine.Board
             Height = height;
             pieces = new IPiece?[width, height];
             tiles = new ITile[width, height];
-            
-            // Initialize all tiles with StandardTile
+
+            // Initialize all tiles with StandardTile by default
+            // Use SetTile() to customize specific tiles
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < height; y++)
                 {
-                    tiles[x, y] = new StandardTile();
+                    SetTile(new Vector2Int(x, y), new StandardTile());
                 }
             }
         }
@@ -75,7 +73,43 @@ namespace RogueChess.Engine.Board
         {
             if (!IsInBounds(pos))
                 return;
+
+            tile.Position = pos;
+
             tiles[pos.X, pos.Y] = tile;
+        }
+
+        /// <summary>
+        /// Set a tile at the specified position with bounds checking.
+        /// </summary>
+        public void SetTile(int x, int y, ITile tile)
+        {
+            SetTile(new Vector2Int(x, y), tile);
+        }
+
+        /// <summary>
+        /// Set multiple tiles in a rectangular area.
+        /// </summary>
+        public void SetTiles(Vector2Int topLeft, Vector2Int bottomRight, ITile tile)
+        {
+            for (int x = topLeft.X; x <= bottomRight.X; x++)
+            {
+                for (int y = topLeft.Y; y <= bottomRight.Y; y++)
+                {
+                    SetTile(x, y, tile);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Set tiles at specific positions.
+        /// </summary>
+        public void SetTiles(IEnumerable<(Vector2Int pos, ITile tile)> tilePositions)
+        {
+            foreach (var (pos, tile) in tilePositions)
+            {
+                SetTile(pos, tile);
+            }
         }
 
         public IEnumerable<IPiece> GetAllPieces(PlayerColor? owner = null)
@@ -126,114 +160,21 @@ namespace RogueChess.Engine.Board
 
             return clone;
         }
-    }
 
-    /// <summary>
-    /// Basic tile implementation for Step 3.
-    /// This is a placeholder that will be expanded in Step 4.
-    /// </summary>
-    public class StandardTile : ITile
-    {
-        public Vector2Int Position { get; set; }
-
-        public IEnumerable<CandidateEvent> OnEnter(IPiece piece, Vector2Int pos, GameState state)
+        public IEnumerable<ITile> GetAllTiles()
         {
-            yield break; // No effects
-        }
-
-        public IEnumerable<CandidateEvent> OnTurnStart(
-            IPiece piece,
-            Vector2Int pos,
-            GameState state
-        )
-        {
-            yield break; // No effects
-        }
-
-        public ITile Clone()
-        {
-            return new StandardTile { Position = Position };
-        }
-    }
-
-    /// <summary>
-    /// Scorched tile that applies burning status to pieces that enter it.
-    /// </summary>
-    public class ScorchedTile : ITile
-    {
-        public Vector2Int Position { get; set; }
-
-        public IEnumerable<CandidateEvent> OnEnter(IPiece piece, Vector2Int pos, GameState state)
-        {
-            // Emit candidate event to apply burning status
-            yield return new CandidateEvent(
-                GameEventType.StatusEffectTriggered,
-                false, // Not a player action
-                new StatusApplyPayload(piece, new StatusEffects.BurningStatus())
-            );
-        }
-
-        public IEnumerable<CandidateEvent> OnTurnStart(IPiece piece, Vector2Int pos, GameState state)
-        {
-            // Keep burning any piece that starts its turn here
-            yield return new CandidateEvent(
-                GameEventType.StatusEffectTriggered,
-                false, // Not a player action
-                new StatusApplyPayload(piece, new StatusEffects.BurningStatus())
-            );
-        }
-
-        public ITile Clone()
-        {
-            return new ScorchedTile { Position = Position };
-        }
-    }
-
-    /// <summary>
-    /// Slippery tile that forces pieces to slide one extra step in their movement direction.
-    /// </summary>
-    public class SlipperyTile : ITile
-    {
-        public Vector2Int Position { get; set; }
-
-        public IEnumerable<CandidateEvent> OnEnter(IPiece piece, Vector2Int pos, GameState state)
-        {
-            // Find direction of the last move that landed here
-            var lastMove = state.MoveHistory.LastOrDefault();
-            if (lastMove == null || lastMove.To != pos)
-                yield break;
-
-            var dir = pos - lastMove.From;
-            if (dir.X == 0 && dir.Y == 0)
-                yield break;
-
-            // Normalize to one square step
-            if (dir.X != 0)
-                dir = new Vector2Int(Math.Sign(dir.X), dir.Y);
-            if (dir.Y != 0)
-                dir = new Vector2Int(dir.X, Math.Sign(dir.Y));
-
-            var next = pos + dir;
-
-            if (state.Board.IsInBounds(next) && state.Board.GetPieceAt(next) == null)
+            for (int x = 0; x < Width; x++)
             {
-                // Emit candidate event for forced slide
-                yield return new CandidateEvent(
-                    GameEventType.TileEffectTriggered,
-                    false, // Not a player action
-                    new ForcedSlidePayload(piece, pos, next)
-                );
+                for (int y = 0; y < Height; y++)
+                {
+                    var pos = new Vector2Int(x, y);
+                    var tile = tiles[x, y];
+                    if (tile != null)
+                    {
+                        yield return tile;
+                    }
+                }
             }
-        }
-
-        public IEnumerable<CandidateEvent> OnTurnStart(IPiece piece, Vector2Int pos, GameState state)
-        {
-            yield break; // No turn start effects
-        }
-
-        public ITile Clone()
-        {
-            return new SlipperyTile { Position = Position };
         }
     }
 }

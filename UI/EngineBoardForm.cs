@@ -8,10 +8,13 @@ using RogueChess.Engine;
 using RogueChess.Engine.Board;
 using RogueChess.Engine.Controllers;
 using RogueChess.Engine.Events;
+using RogueChess.Engine.GameModes;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Pieces;
+using RogueChess.Engine.Pieces.Decorators;
 using RogueChess.Engine.Primitives;
 using RogueChess.Engine.RuleSets;
+using RogueChess.Engine.Tiles;
 
 namespace RogueChess.UI
 {
@@ -19,6 +22,13 @@ namespace RogueChess.UI
     /// Main board form that integrates with the new Engine architecture.
     /// Features undo/redo, debug panel, and canonical event highlighting.
     /// </summary>
+    public enum PlayerMode
+    {
+        HumanVsHuman,
+        HumanVsAI,
+        AIVsAI,
+    }
+
     public class EngineBoardForm : Form
     {
         private GameEngine? _gameEngine;
@@ -29,6 +39,8 @@ namespace RogueChess.UI
         private EngineHumanController? _blackHuman;
         private IPlayerController? _whitePlayer;
         private IPlayerController? _blackPlayer;
+        private IGameMode? _gameMode;
+        private PlayerMode _currentPlayerMode = PlayerMode.HumanVsAI;
 
         private Vector2Int? _lastMoveFrom;
         private Vector2Int? _lastMoveTo;
@@ -57,6 +69,13 @@ namespace RogueChess.UI
         private CancellationTokenSource? _loopCts;
         private Task? _loopTask;
 
+        private EngineHumanController? GetActiveHumanController(PlayerColor color)
+        {
+            return color == PlayerColor.White ? _whiteHuman : _blackHuman;
+        }
+
+        
+
         public EngineBoardForm()
         {
             InitializeComponent();
@@ -72,13 +91,56 @@ namespace RogueChess.UI
             // Menu bar
             var gameMenu = new ToolStripMenuItem("Game");
             var newGameItem = new ToolStripMenuItem("New Game", null, NewGame_Click);
+            var gameModeMenu = new ToolStripMenuItem("Game Mode");
+            var standardModeItem = new ToolStripMenuItem(
+                "Standard Chess",
+                null,
+                (s, e) => SetGameMode(new StandardChessMode())
+            );
+            var randomModeItem = new ToolStripMenuItem(
+                "Random Chess",
+                null,
+                (s, e) => SetGameMode(new RandomChessMode())
+            );
+
+            var playerMenu = new ToolStripMenuItem("Players");
+            var humanVsHumanItem = new ToolStripMenuItem(
+                "Human vs Human",
+                null,
+                (s, e) => SetPlayerMode(PlayerMode.HumanVsHuman)
+            );
+            var humanVsAIItem = new ToolStripMenuItem(
+                "Human vs AI",
+                null,
+                (s, e) => SetPlayerMode(PlayerMode.HumanVsAI)
+            );
+            var aiVsAIItem = new ToolStripMenuItem(
+                "AI vs AI",
+                null,
+                (s, e) => SetPlayerMode(PlayerMode.AIVsAI)
+            );
+
+            var legendItem = new ToolStripMenuItem("Show Legend", null, Legend_Click);
             var debugItem = new ToolStripMenuItem("Show Debug Panel", null, DebugPanel_Click);
             var exitItem = new ToolStripMenuItem("Exit", null, (s, e) => Close());
+
+            gameModeMenu.DropDownItems.AddRange(
+                new ToolStripItem[] { standardModeItem, randomModeItem }
+            );
+            playerMenu.DropDownItems.AddRange(
+                new ToolStripItem[] { humanVsHumanItem, humanVsAIItem, aiVsAIItem }
+            );
 
             gameMenu.DropDownItems.AddRange(
                 new ToolStripItem[]
                 {
                     newGameItem,
+                    new ToolStripSeparator(),
+                    gameModeMenu,
+                    new ToolStripSeparator(),
+                    playerMenu,
+                    new ToolStripSeparator(),
+                    legendItem,
                     new ToolStripSeparator(),
                     debugItem,
                     new ToolStripSeparator(),
@@ -131,18 +193,56 @@ namespace RogueChess.UI
 
         private void InitializeGame()
         {
-            // Create ruleset
-            _ruleset = new StandardChessRuleSet();
+            // Set default game mode
+            SetGameMode(new StandardChessMode());
+        }
 
-            // Create controllers - Human vs AI
-            _whiteHuman = new EngineHumanController(_ruleset);
-            _blackHuman = new EngineHumanController(_ruleset);
+        private void SetGameMode(IGameMode gameMode)
+        {
+            _gameMode = gameMode;
+            _ruleset = gameMode.GetRuleSet();
 
-            // White is human, Black is AI
-            _whitePlayer = _whiteHuman;
-            _blackPlayer = new RandomAIController(_ruleset);
+            // Set up players based on current player mode
+            SetPlayerControllers();
+
+            // Update window title
+            Text = $"Rogue Chess - {gameMode.Name}";
 
             NewGame();
+        }
+
+        private void SetPlayerMode(PlayerMode playerMode)
+        {
+            _currentPlayerMode = playerMode;
+            if (_ruleset != null)
+            {
+                SetPlayerControllers();
+            }
+        }
+
+        private void SetPlayerControllers()
+        {
+            if (_ruleset == null)
+                return;
+
+            switch (_currentPlayerMode)
+            {
+                case PlayerMode.HumanVsHuman:
+                    _whitePlayer = _whiteHuman = new EngineHumanController(_ruleset);
+                    _blackPlayer = _blackHuman = new EngineHumanController(_ruleset);
+                    break;
+                case PlayerMode.HumanVsAI:
+                    _whitePlayer = _whiteHuman = new EngineHumanController(_ruleset);
+                    _blackPlayer = new RandomAIController(_ruleset);
+                    _blackHuman = null;
+                    break;
+                case PlayerMode.AIVsAI:
+                    _whitePlayer = new RandomAIController(_ruleset);
+                    _blackPlayer = new RandomAIController(_ruleset);
+                    _whiteHuman = null;
+                    _blackHuman = null;
+                    break;
+            }
         }
 
         private void NewGame_Click(object? sender, EventArgs e)
@@ -155,11 +255,14 @@ namespace RogueChess.UI
             // Stop any running game loop
             StopGameLoop();
 
-            // Create new board
-            var board = new RogueChess.Engine.Board.Board(8, 8);
+            if (_gameMode == null)
+            {
+                SetGameMode(new StandardChessMode());
+                return;
+            }
 
-            // Set up initial pieces (simplified setup for demo)
-            SetupInitialPieces(board);
+            // Create board using the current game mode
+            var board = _gameMode.SetupBoard();
 
             // Create initial game state
             var initialState = GameState.CreateInitial(board, PlayerColor.White);
@@ -179,124 +282,50 @@ namespace RogueChess.UI
             StartGameLoop();
         }
 
-        private void SetupInitialPieces(RogueChess.Engine.Board.Board board)
-        {
-            // White pieces
-            board.PlacePiece(
-                new Rook(PlayerColor.White, new Vector2Int(0, 0)),
-                new Vector2Int(0, 0)
-            );
-            board.PlacePiece(
-                new Knight(PlayerColor.White, new Vector2Int(1, 0)),
-                new Vector2Int(1, 0)
-            );
-            board.PlacePiece(
-                new Bishop(PlayerColor.White, new Vector2Int(2, 0)),
-                new Vector2Int(2, 0)
-            );
-            board.PlacePiece(
-                new Queen(PlayerColor.White, new Vector2Int(3, 0)),
-                new Vector2Int(3, 0)
-            );
-            board.PlacePiece(
-                new King(PlayerColor.White, new Vector2Int(4, 0)),
-                new Vector2Int(4, 0)
-            );
-            board.PlacePiece(
-                new Bishop(PlayerColor.White, new Vector2Int(5, 0)),
-                new Vector2Int(5, 0)
-            );
-            board.PlacePiece(
-                new Knight(PlayerColor.White, new Vector2Int(6, 0)),
-                new Vector2Int(6, 0)
-            );
-            board.PlacePiece(
-                new Rook(PlayerColor.White, new Vector2Int(7, 0)),
-                new Vector2Int(7, 0)
-            );
-
-            for (int x = 0; x < 8; x++)
-            {
-                board.PlacePiece(
-                    new Pawn(PlayerColor.White, new Vector2Int(x, 1)),
-                    new Vector2Int(x, 1)
-                );
-            }
-
-            // Black pieces
-            board.PlacePiece(
-                new Rook(PlayerColor.Black, new Vector2Int(0, 7)),
-                new Vector2Int(0, 7)
-            );
-            board.PlacePiece(
-                new Knight(PlayerColor.Black, new Vector2Int(1, 7)),
-                new Vector2Int(1, 7)
-            );
-            board.PlacePiece(
-                new Bishop(PlayerColor.Black, new Vector2Int(2, 7)),
-                new Vector2Int(2, 7)
-            );
-            board.PlacePiece(
-                new Queen(PlayerColor.Black, new Vector2Int(3, 7)),
-                new Vector2Int(3, 7)
-            );
-            board.PlacePiece(
-                new King(PlayerColor.Black, new Vector2Int(4, 7)),
-                new Vector2Int(4, 7)
-            );
-            board.PlacePiece(
-                new Bishop(PlayerColor.Black, new Vector2Int(5, 7)),
-                new Vector2Int(5, 7)
-            );
-            board.PlacePiece(
-                new Knight(PlayerColor.Black, new Vector2Int(6, 7)),
-                new Vector2Int(6, 7)
-            );
-            board.PlacePiece(
-                new Rook(PlayerColor.Black, new Vector2Int(7, 7)),
-                new Vector2Int(7, 7)
-            );
-
-            for (int x = 0; x < 8; x++)
-            {
-                board.PlacePiece(
-                    new Pawn(PlayerColor.Black, new Vector2Int(x, 6)),
-                    new Vector2Int(x, 6)
-                );
-            }
-        }
-
         private void InitializeGrid()
         {
             _grid.Controls.Clear();
-            _grid.RowCount = 8;
-            _grid.ColumnCount = 8;
-            _cells = new Button[8, 8];
 
-            for (int y = 7; y >= 0; y--) // Start from top (y=7) and go down
+            // Get board dimensions from current game state
+            var boardWidth = 8;
+            var boardHeight = 8;
+            if (_gameEngine?.CurrentState?.Board != null)
             {
-                for (int x = 0; x < 8; x++)
+                boardWidth = _gameEngine.CurrentState.Board.Width;
+                boardHeight = _gameEngine.CurrentState.Board.Height;
+            }
+
+            _grid.RowCount = boardHeight;
+            _grid.ColumnCount = boardWidth;
+            _cells = new Button[boardWidth, boardHeight];
+
+            for (int y = boardHeight - 1; y >= 0; y--) // Start from top and go down
+            {
+                for (int x = 0; x < boardWidth; x++)
                 {
                     var cell = new Button
                     {
                         Dock = DockStyle.Fill,
                         FlatStyle = FlatStyle.Flat,
-                        Font = new Font("Arial", 24, FontStyle.Bold), // Larger font
+                        Font = new Font("Arial", 12, FontStyle.Bold), // Smaller font since we're using images
                         Tag = new Vector2Int(x, y),
                         Margin = Padding.Empty,
                         Padding = Padding.Empty,
                     };
                     cell.Click += Cell_Click;
                     _cells[x, y] = cell;
-                    _grid.Controls.Add(cell, x, 7 - y); // Reverse y for display
+                    _grid.Controls.Add(cell, x, boardHeight - 1 - y); // Reverse y for display
                 }
             }
 
             // Set equal sizing
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < boardHeight; i++)
             {
-                _grid.RowStyles.Add(new RowStyle(SizeType.Percent, 12.5f));
-                _grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 12.5f));
+                _grid.RowStyles.Add(new RowStyle(SizeType.Percent, 100f / boardHeight));
+            }
+            for (int i = 0; i < boardWidth; i++)
+            {
+                _grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / boardWidth));
             }
         }
 
@@ -317,11 +346,9 @@ namespace RogueChess.UI
             var piece = currentState.Board.GetPieceAt(pos);
 
             // Only allow human interaction when it's the human player's turn
-            if (currentState.CurrentPlayer != PlayerColor.White)
-            {
-                // It's the AI's turn, ignore clicks
-                return;
-            }
+            var controller = GetActiveHumanController(currentState.CurrentPlayer);
+            if (controller == null)
+                return; // AI’s turn, ignore clicks
 
             if (_selected == null)
             {
@@ -329,7 +356,7 @@ namespace RogueChess.UI
                 if (piece != null && piece.Owner == currentState.CurrentPlayer)
                 {
                     _selected = pos;
-                    _legalTargets = _whiteHuman!
+                    _legalTargets = controller
                         .GetLegalMoves(currentState, pos)
                         .Select(m => m.To)
                         .ToArray();
@@ -342,16 +369,109 @@ namespace RogueChess.UI
                 if (_legalTargets.Contains(pos))
                 {
                     var move = new Move(_selected.Value, pos, piece!);
-                    _whiteHuman!.SubmitMove(move);
+                    controller.SubmitMove(move);
+
+                    // Clear selection after move
+                    ClearSelection();
+                    UpdateDisplay();
                 }
                 else
                 {
                     // Cancel selection
-                    _selected = null;
-                    _legalTargets = Array.Empty<Vector2Int>();
+                    ClearSelection();
                     UpdateDisplay();
                 }
             }
+        }
+
+        private void ClearSelection()
+        {
+            _selected = null;
+            _legalTargets = Array.Empty<Vector2Int>();
+        }
+
+        private void AddPieceVisualEffects(Button cell, IPiece piece)
+        {
+            // Check for decorators and status effects
+            var hasExploding = HasDecorator(piece, typeof(ExplodingDecorator));
+            var hasStatusEffect = HasDecorator(piece, typeof(StatusEffectDecorator));
+            var hasMartyr = HasDecorator(piece, typeof(MartyrDecorator));
+
+            // Add visual indicators
+            if (hasExploding)
+            {
+                cell.FlatAppearance.BorderColor = Color.Orange;
+                cell.FlatAppearance.BorderSize = 2;
+            }
+
+            if (hasStatusEffect)
+            {
+                // Add a small indicator for status effects
+                cell.Text = "●";
+                cell.ForeColor = Color.Red;
+                cell.Font = new Font("Arial", 8, FontStyle.Bold);
+            }
+
+            if (hasMartyr)
+            {
+                // Add a cross indicator for martyr
+                if (string.IsNullOrEmpty(cell.Text))
+                {
+                    cell.Text = "✚";
+                    cell.ForeColor = Color.Blue;
+                    cell.Font = new Font("Arial", 8, FontStyle.Bold);
+                }
+            }
+        }
+
+        private void AddTileVisualEffects(Button cell, ITile tile)
+        {
+            // Add visual indicators for special tiles
+            switch (tile)
+            {
+                case ScorchedTile:
+                    // Add a subtle red tint to scorched tiles
+                    var baseColor = cell.BackColor;
+                    cell.BackColor = Color.FromArgb(
+                        Math.Min(255, baseColor.R + 30),
+                        Math.Max(0, baseColor.G - 20),
+                        Math.Max(0, baseColor.B - 20)
+                    );
+                    break;
+
+                case SlipperyTile:
+                    // Add a subtle blue tint to slippery tiles
+                    var baseColor2 = cell.BackColor;
+                    cell.BackColor = Color.FromArgb(
+                        Math.Max(0, baseColor2.R - 20),
+                        Math.Max(0, baseColor2.G - 20),
+                        Math.Min(255, baseColor2.B + 30)
+                    );
+                    break;
+
+                case GuardianTile:
+                    // Add a subtle green tint to guardian tiles
+                    var baseColor3 = cell.BackColor;
+                    cell.BackColor = Color.FromArgb(
+                        Math.Max(0, baseColor3.R - 20),
+                        Math.Min(255, baseColor3.G + 30),
+                        Math.Max(0, baseColor3.B - 20)
+                    );
+                    break;
+            }
+        }
+
+        private bool HasDecorator(IPiece piece, Type decoratorType)
+        {
+            // Check if piece has a specific decorator type
+            var current = piece;
+            while (current is PieceDecoratorBase decorator)
+            {
+                if (current.GetType() == decoratorType)
+                    return true;
+                current = decorator.Inner;
+            }
+            return false;
         }
 
         private void UpdateDisplay()
@@ -360,40 +480,48 @@ namespace RogueChess.UI
                 return;
 
             var state = _gameEngine.CurrentState;
+            var boardWidth = state.Board.Width;
+            var boardHeight = state.Board.Height;
 
-            for (int x = 0; x < 8; x++)
+            for (int x = 0; x < boardWidth; x++)
             {
-                for (int y = 0; y < 8; y++)
+                for (int y = 0; y < boardHeight; y++)
                 {
                     var pos = new Vector2Int(x, y);
                     var cell = _cells[x, y];
                     var piece = state.Board.GetPieceAt(pos);
 
-                    // Set piece symbol
-                    cell.Text = piece?.Name switch
-                    {
-                        "King" => piece.Owner == PlayerColor.White ? "♔" : "♚",
-                        "Queen" => piece.Owner == PlayerColor.White ? "♕" : "♛",
-                        "Rook" => piece.Owner == PlayerColor.White ? "♖" : "♜",
-                        "Bishop" => piece.Owner == PlayerColor.White ? "♗" : "♝",
-                        "Knight" => piece.Owner == PlayerColor.White ? "♘" : "♞",
-                        "Pawn" => piece.Owner == PlayerColor.White ? "♙" : "♟",
-                        _ => "",
-                    };
-
-                    // Set colors
-                    var isLight = (x + y) % 2 == 0;
-                    cell.BackColor = GetCellColor(pos, isLight);
-                    cell.ForeColor = piece?.Owner == PlayerColor.White ? Color.White : Color.Black;
-
-                    // Make the piece text more visible
+                    // Set piece image using SVG
                     if (piece != null)
                     {
-                        cell.ForeColor =
-                            piece.Owner == PlayerColor.White ? Color.White : Color.Black;
-                        // Add a subtle shadow effect for better visibility
-                        cell.FlatAppearance.BorderSize = 0;
+                        var color = piece.Owner == PlayerColor.White ? "w" : "b";
+                        var name = piece.Name.ToLower();
+                        var key = $"{name}-{color}";
+
+                        var size = Math.Min(cell.Width, cell.Height) - 6;
+                        var bmp = PieceImageCache.RenderSvg(key, size);
+
+                        cell.Text = "";
+                        cell.Image = bmp;
+                        cell.ImageAlign = ContentAlignment.MiddleCenter;
+                        cell.BackgroundImageLayout = ImageLayout.Zoom;
+
+                        // Add visual indicators for decorators and status effects
+                        AddPieceVisualEffects(cell, piece);
                     }
+                    else
+                    {
+                        cell.Text = "";
+                        cell.Image = null;
+                    }
+
+                    // Set colors and tile effects
+                    var isLight = (x + y) % 2 == 0;
+                    cell.BackColor = GetCellColor(pos, isLight);
+                    cell.FlatAppearance.BorderSize = 0;
+
+                    // Add tile visual effects
+                    AddTileVisualEffects(cell, state.Board.GetTile(pos));
                 }
             }
 
@@ -414,10 +542,10 @@ namespace RogueChess.UI
                 return Color.LightBlue;
             }
 
-            // Highlight legal targets
+            // Highlight legal targets with a more subtle color
             if (_legalTargets.Contains(pos))
             {
-                return Color.LightGreen;
+                return Color.FromArgb(150, 255, 150); // Semi-transparent green
             }
 
             // Brown board colors like the original
@@ -492,6 +620,14 @@ namespace RogueChess.UI
                                 Invoke(
                                     new Action(() =>
                                     {
+                                        // Clear selection when game state changes (AI move)
+                                        if (
+                                            _gameEngine.CurrentState.CurrentPlayer
+                                            == PlayerColor.White
+                                        )
+                                        {
+                                            ClearSelection();
+                                        }
                                         UpdateDisplay();
                                         UpdateStatus();
                                     })
@@ -567,6 +703,12 @@ namespace RogueChess.UI
             {
                 _debugPanel.BringToFront();
             }
+        }
+
+        private void Legend_Click(object? sender, EventArgs e)
+        {
+            var legendForm = new LegendForm();
+            legendForm.ShowDialog();
         }
 
         private void EngineBoardForm_KeyDown(object? sender, KeyEventArgs e)

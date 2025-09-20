@@ -3,7 +3,7 @@ using RogueChess.Engine.Hooks;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
 
-namespace RogueChess.Engine.Pieces
+namespace RogueChess.Engine.Pieces.Decorators
 {
     /// <summary>
     /// Base class for piece decorators that wrap other pieces.
@@ -20,10 +20,10 @@ namespace RogueChess.Engine.Pieces
 
         public virtual string Name => Inner.Name;
         public virtual PlayerColor Owner => Inner.Owner;
-        public virtual Vector2Int Position 
-        { 
-            get => Inner.Position; 
-            set => Inner.Position = value; 
+        public virtual Vector2Int Position
+        {
+            get => Inner.Position;
+            set => Inner.Position = value;
         }
 
         /// <summary>
@@ -116,6 +116,11 @@ namespace RogueChess.Engine.Pieces
         public override string ToString()
         {
             return $"{GetType().Name}({Inner})";
+        }
+
+        public virtual IEnumerable<CandidateEvent> OnTurnStart(GameState state)
+        {
+            return Inner.OnTurnStart(state);
         }
     }
 }

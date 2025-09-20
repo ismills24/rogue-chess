@@ -21,62 +21,35 @@ namespace RogueChess.Engine.Pieces
             Position = position;
         }
 
-        /// <summary>
-        /// Override this to provide piece-specific move generation.
-        /// </summary>
+        // ---------------- Movement ----------------
         public abstract IEnumerable<Move> GetPseudoLegalMoves(GameState state);
 
-        /// <summary>
-        /// Default behavior: no events on move.
-        /// Override to add piece-specific move effects.
-        /// </summary>
+        // ---------------- Event hooks ----------------
         public virtual IEnumerable<CandidateEvent> OnMove(Move move, GameState state)
         {
-            yield break; // No effects by default
+            yield break;
         }
 
-        /// <summary>
-        /// Default behavior: no events on capture.
-        /// Override to add piece-specific capture effects.
-        /// </summary>
         public virtual IEnumerable<CandidateEvent> OnCapture(GameState state)
         {
-            yield break; // No effects by default
+            yield break;
         }
 
-        /// <summary>
-        /// Override this to provide piece-specific value.
-        /// </summary>
+        public virtual IEnumerable<CandidateEvent> OnTurnStart(GameState state)
+        {
+            yield break;
+        }
+
+        // ---------------- Value & Cloning ----------------
         public abstract int GetValue();
 
-        /// <summary>
-        /// Default cloning behavior.
-        /// Override if piece has additional state to clone.
-        /// </summary>
-        public virtual IPiece Clone()
-        {
-            // Use reflection to create a new instance of the same type
-            var constructor = GetType().GetConstructor(new[] { typeof(string), typeof(PlayerColor), typeof(Vector2Int) });
-            if (constructor != null)
-            {
-                return (IPiece)constructor.Invoke(new object[] { Name, Owner, Position });
-            }
-            
-            // Fallback: create a copy with the same properties
-            return CreateClone();
-        }
+        public IPiece Clone() => CreateClone();
 
         /// <summary>
-        /// Override this method to provide custom cloning logic.
+        /// Concrete pieces must implement cloning.
         /// </summary>
-        protected virtual IPiece CreateClone()
-        {
-            throw new NotImplementedException($"Clone not implemented for {GetType().Name}");
-        }
+        protected abstract IPiece CreateClone();
 
-        public override string ToString()
-        {
-            return $"{Name} ({Owner}) at {Position}";
-        }
+        public override string ToString() => $"{Name} ({Owner}) at {Position}";
     }
 }

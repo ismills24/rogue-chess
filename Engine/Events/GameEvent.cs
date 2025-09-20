@@ -1,5 +1,7 @@
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
+using RogueChess.Engine.StatusEffects;
+using RogueChess.Engine.Tiles;
 
 namespace RogueChess.Engine.Events
 {
@@ -12,6 +14,9 @@ namespace RogueChess.Engine.Events
         StatusEffectTriggered,
         TurnAdvanced,
         GameOver,
+        PieceDestroyed,
+        MoveCancelled,
+        StatusTick,
     }
 
     /// <summary>
@@ -42,7 +47,7 @@ namespace RogueChess.Engine.Events
 
     public record TileChangePayload(Vector2Int Position, ITile NewTile);
 
-    public record StatusApplyPayload(IPiece Target, object Effect);
+    public record StatusApplyPayload(IPiece Target, IStatusEffect Effect);
 
     public record ForcedSlidePayload(IPiece Piece, Vector2Int From, Vector2Int To);
 }

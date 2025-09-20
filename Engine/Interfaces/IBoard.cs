@@ -1,4 +1,5 @@
 using RogueChess.Engine.Primitives;
+using RogueChess.Engine.Tiles;
 
 namespace RogueChess.Engine.Interfaces
 {
@@ -18,6 +19,7 @@ namespace RogueChess.Engine.Interfaces
 
         ITile GetTile(Vector2Int pos);
         void SetTile(Vector2Int pos, ITile tile);
+        IEnumerable<ITile> GetAllTiles();
 
         IEnumerable<IPiece> GetAllPieces(PlayerColor? owner = null);
 

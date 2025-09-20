@@ -15,7 +15,7 @@ namespace RogueChess.Engine.RuleSets
         public static bool IsKingInCheck(GameState state, PlayerColor kingColor)
         {
             var king = state.Board.GetAllPieces(kingColor).FirstOrDefault(p => p is King);
-            
+
             if (king == null)
                 return true; // No king = already dead = checkmate
 
@@ -51,28 +51,33 @@ namespace RogueChess.Engine.RuleSets
         /// <summary>
         /// Check if a move would put the moving player's king in check.
         /// </summary>
-        public static bool WouldMovePutKingInCheck(GameState state, Move move, PlayerColor movingPlayer)
+        public static bool WouldMovePutKingInCheck(
+            GameState state,
+            Move move,
+            PlayerColor movingPlayer
+        )
         {
             // Create a clone of the state and apply the move
             var clonedState = state.Clone();
-            
+
             // Apply the move to the cloned board
             var piece = clonedState.Board.GetPieceAt(move.From);
-            if (piece == null) return true; // Invalid move
+            if (piece == null)
+                return true; // Invalid move
 
             // Remove piece from original position
             clonedState.Board.RemovePiece(move.From);
-            
+
             // Handle captures
             var capturedPiece = clonedState.Board.GetPieceAt(move.To);
             if (capturedPiece != null)
             {
                 clonedState.Board.RemovePiece(move.To);
             }
-            
+
             // Place piece at new position
             clonedState.Board.PlacePiece(piece, move.To);
-            
+
             // Check if king is in check after the move
             return IsKingInCheck(clonedState, movingPlayer);
         }
