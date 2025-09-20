@@ -12,7 +12,7 @@ namespace RogueChess.Engine.Pieces
         public King(PlayerColor owner, Vector2Int position)
             : base("King", owner, position) { }
 
-        public override int GetValue() => 100; // high value
+        public override int GetValue() => 100000; // high value
 
         public override IEnumerable<Move> GetPseudoLegalMoves(GameState state)
         {

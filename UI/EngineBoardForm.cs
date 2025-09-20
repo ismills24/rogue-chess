@@ -100,6 +100,11 @@ namespace RogueChess.UI
                 null,
                 (s, e) => SetGameMode(new RandomChessMode())
             );
+            var draftModeItem = new ToolStripMenuItem(
+                "Draft Chess",
+                null,
+                (s, e) => SetGameMode(new DraftChessMode())
+            );
 
              var draftModeItem = new ToolStripMenuItem(
                 "Draft Chess",
