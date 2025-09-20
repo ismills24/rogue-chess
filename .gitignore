@@ -16,6 +16,15 @@
 *.blend1
 *.blend1.meta
 
+# Build outputs
+[Bb]in/
+[Oo]bj/
+
+# If you want to be extra safe, also ignore nested ones
+**/[Bb]in/
+**/[Oo]bj/
+
+
 # MemoryCaptures can get excessive in size.
 # They also could contain extremely sensitive data
 /[Mm]emoryCaptures/
