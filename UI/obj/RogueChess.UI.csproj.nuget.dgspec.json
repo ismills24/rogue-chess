@@ -4,14 +4,14 @@
     "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\UI\\RogueChess.UI.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Core\\RogueChess.Core.csproj": {
+    "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Engine\\RogueChess.Engine.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Core\\RogueChess.Core.csproj",
-        "projectName": "RogueChess.Core",
-        "projectPath": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Core\\RogueChess.Core.csproj",
+        "projectUniqueName": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Engine\\RogueChess.Engine.csproj",
+        "projectName": "RogueChess.Engine",
+        "projectPath": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Engine\\RogueChess.Engine.csproj",
         "packagesPath": "C:\\Users\\Isaac\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Core\\obj\\",
+        "outputPath": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Engine\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Isaac\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -43,6 +43,22 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[17.8.0, )"
+            },
+            "xunit": {
+              "target": "Package",
+              "version": "[2.6.1, )"
+            },
+            "xunit.runner.visualstudio": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.5.3, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -99,8 +115,8 @@
           "net9.0-windows7.0": {
             "targetAlias": "net9.0-windows",
             "projectReferences": {
-              "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Core\\RogueChess.Core.csproj": {
-                "projectPath": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Core\\RogueChess.Core.csproj"
+              "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Engine\\RogueChess.Engine.csproj": {
+                "projectPath": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Engine\\RogueChess.Engine.csproj"
               }
             }
           }

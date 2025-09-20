@@ -1,0 +1,409 @@
+# Rogue Chess — Implementation Plan (New Architecture)
+
+This is a numbered, step‑by‑step plan that any future agent can follow. When you say “go to Step X,” they should implement only that step and run/tests as indicated before moving on.
+
+> **Core principles**
+>
+> * **Canonical events only** are published to UIs/loggers and stored in history.
+> * A **candidate → hook → commit** pipeline resolves *reactive* mechanics (e.g., Martyr) without polluting the canonical log.
+> * **1 canonical GameEvent ↔ 1 GameState snapshot** (strict invariant).
+> * All gameplay mutations happen in a **single orchestrator** (Runner/GameEngine) to simplify undo/redo, replay, and AI simulation.
+
+---
+
+## Step 0 — Repo & Solution Scaffolding
+
+**Goal:** Prepare a clean workspace alongside legacy code.
+
+* Keep `/Core` as `Core.Legacy` (or move to `/Legacy`).
+* Create a new project `Engine` (class library) under `/Engine` with root namespace `RogueChess.Engine`.
+* Keep UI in `/UI` (WinForms for now) referencing `Engine`.
+* Solution layout:
+
+  ```
+  /Engine        # new architecture
+  /UI            # WinForms demo
+  /Legacy        # existing Core kept read-only for reference
+  /assets        # shared assets (svgs, etc.)
+  ```
+
+**Exit criteria:** Solution builds with empty `Engine` project, `UI` references `Engine`.
+
+---
+
+## Step 1 — Core Primitives
+
+**Goal:** Define minimal shared types.
+
+* `Vector2Int { int x, int y; }` (immutable struct)
+* `enum PlayerColor { White, Black }`
+* `record Move(Vector2Int From, Vector2Int To);` (expand later: promotion, flags)
+
+**Exit criteria:** Compiles; no dependencies on game logic.
+
+---
+
+## Step 2 — Canonical `GameEvent` & Internal `CandidateEvent`
+
+**Goal:** Separate *what really happened* (canonical) from *what’s being proposed* (candidate).
+
+* **Canonical** (published & historized):
+
+  ```csharp
+  public enum GameEventType {
+    MoveApplied, PieceCaptured, PiecePromoted,
+    TileEffectTriggered, StatusEffectTriggered,
+    TurnAdvanced, GameOver
+  }
+
+  public record GameEvent(
+    Guid Id,
+    GameEventType Type,
+    bool IsPlayerAction,
+    Guid? ParentEventId,
+    object? Payload // structured payload; avoid overloading Message strings
+  );
+  ```
+* **Candidate** (internal only):
+
+  ```csharp
+  public record CandidateEvent(
+    GameEventType Type,
+    bool IsPlayerAction,
+    object? Payload
+  );
+  ```
+* Define typed payloads (e.g., `MovePayload{ IPiece Piece; Vector2Int From; Vector2Int To; }`, `CapturePayload{ IPiece Target; }`, `TileChangePayload{ Vector2Int Pos; ITile NewTile; }`, `StatusApplyPayload{ IPiece Target; IStatusEffect Effect; }`).
+
+**Exit criteria:** Types exist; no runner yet.
+
+---
+
+## Step 3 — Immutable `GameState`
+
+**Goal:** Snapshot model with deep-clone.
+
+* `GameState` contains:
+
+  * `Board Board` (see Step 4)
+  * `PlayerColor CurrentPlayer`
+  * `int TurnNumber`
+  * optional `IReadOnlyList<Move> MoveHistory`
+* Methods:
+
+  * `GameState Clone()` (deep copies board + pieces + statuses)
+  * `static GameState CreateInitial(Board board, PlayerColor start)`
+
+**Exit criteria:** Compiles with `Board` placeholders, tests confirm clone is deep (changes to clone don’t affect original).
+
+---
+
+## Step 4 — Board & Tile Abstractions
+
+**Goal:** Grid container + tile hooks returning **candidate** events.
+
+* `class Board`:
+
+  * `int Width, Height`
+  * `IPiece? GetPieceAt(Vector2Int)`
+  * `void PlacePiece(IPiece, Vector2Int)`
+  * `void RemovePiece(Vector2Int)`
+  * `void MovePiece(Vector2Int from, Vector2Int to)`
+  * `bool IsInBounds(Vector2Int)`
+  * `ITile GetTile(Vector2Int)`
+  * `void SetTile(Vector2Int, ITile)`
+  * `Board Clone()`
+* `interface ITile`:
+
+  * `IEnumerable<CandidateEvent> OnEnter(IPiece piece, Vector2Int pos, GameState state)`
+  * `IEnumerable<CandidateEvent> OnExit(IPiece piece, Vector2Int pos, GameState state)`
+  * `IEnumerable<CandidateEvent> OnTurnStart(IPiece piece, Vector2Int pos, GameState state)`
+* Implement `StandardTile`, `ScorchedTile`, `SlipperyTile` (emit **candidate** events; never mutate board).
+
+**Exit criteria:** Board operations are unit-tested; tile hooks compile and return candidate events only.
+
+---
+
+## Step 5 — Pieces, Decorators, Status Effects
+
+**Goal:** Actor model with extension points.
+
+* `interface IPiece`:
+
+  * `PlayerColor Owner { get; }`
+  * `Vector2Int Position { get; set; }`
+  * `string Name { get; }`
+  * `IEnumerable<Move> GetPseudoLegalMoves(GameState state)`
+  * `IEnumerable<CandidateEvent> OnMove(Move move, GameState state)`
+  * `IEnumerable<CandidateEvent> OnCapture(GameState state)`
+  * `int GetValue()` (base value)
+  * `IPiece Clone()`
+* `abstract class PieceBase : IPiece` implements default behavior.
+* `abstract class PieceDecoratorBase : IPiece` wraps an `IPiece Inner` and forwards; can override hooks.
+* **Status effects** option A: as decorators; option B: as an intrinsic list on `PieceBase`. Choose one (or hybrid);
+
+  * Either way, effects produce **candidate** events (no direct mutation).
+* Implement a couple of standard pieces and one decorator (e.g., `ExplodingDecorator`).
+
+**Exit criteria:** Pieces generate pseudo-legal moves; hooks emit candidate events; cloning preserves full structure.
+
+---
+
+## Step 6 — Rulesets
+
+**Goal:** Legality & termination.
+
+* `interface IRuleSet`:
+
+  * `IEnumerable<Move> GetLegalMoves(GameState state, IPiece piece)`
+  * `bool IsGameOver(GameState state, out PlayerColor winner)`
+* Implement `StandardChessRuleSet` minimally.
+
+**Exit criteria:** Given a simple start state, legal move count matches expectations.
+
+---
+
+## Step 7 — Hook Interfaces (Global Interception)
+
+**Goal:** Global reactive abilities without polluting canonical events.
+
+* `interface IBeforeEventHook { CandidateEvent? BeforeEvent(CandidateEvent candidate, GameState state); }`
+* Providers of hooks:
+
+  * Pieces (including decorators)
+  * Tiles
+  * Status effects (if modeled intrinsically)
+  * Ruleset (optionally)
+* **Collector** utility to gather hooks from current state (iterate pieces, tiles, statuses).
+
+**Exit criteria:** Collector returns a stable set of hooks; ordering is deterministic (define order: ruleset → tiles → pieces → statuses, or vice versa, and document it).
+
+---
+
+## Step 8 — GameEngine (Runner) & Canonical Pipeline
+
+**Goal:** Orchestrate candidate → hooks → commit; maintain history; publish canonical events.
+
+* `class GameEngine` (formerly GameRunner):
+
+  * Fields:
+
+    * `List<(GameEvent Event, GameState State)> _history`
+    * `int _currentIndex`
+    * `IRuleSet _ruleset`
+    * controllers for white/black
+  * Public:
+
+    * `GameState CurrentState { get; }`
+    * `int CurrentIndex { get; }`
+    * `event Action<GameEvent> OnEventPublished`
+    * `void RunTurn()`
+    * `void Undo()/Redo()/JumpTo(int)`
+  * Internals:
+
+    * `IEnumerable<CandidateEvent> TickTurnStart()` (iterate pieces/tiles, collect candidates)
+    * `GameEvent Commit(CandidateEvent candidate, Guid? parentId = null)` →
+
+      1. pass through global hooks; 2) resolve to a **canonical** `GameEvent` (with new `Guid Id`);
+      2. **apply** to a cloned board; 4) produce **new GameState**; 5) append `(event,state)` to history; 6) publish.
+    * **Mutation only here** (never inside pieces/tiles/effects).
+
+**Exit criteria:** Engine can advance one full turn with a human controller producing canonical events + snapshots.
+
+---
+
+## Step 9 — Implement Tile Examples via Pipeline
+
+**Goal:** Refit `ScorchedTile`, `SlipperyTile` to emit candidates and be committed by the engine.
+
+* `ScorchedTile.OnEnter` → emit `CandidateEvent(StatusEffectTriggered, payload: StatusApplyPayload{ Target, new BurningStatus() })`.
+* `SlipperyTile.OnEnter` → emit `CandidateEvent(TileEffectTriggered, payload: ForcedSlidePayload{ Piece, From, To })`.
+* In `GameEngine.Commit`, handle these payloads to mutate the cloned board appropriately (e.g., add status, move piece one square).
+
+**Exit criteria:** Moving onto slippery tile produces canonical slide event + snapshot; scorched applies burning status canonically.
+
+---
+
+## Step 10 — Reactive Ability: Martyr (Decorator)
+
+**Goal:** Demonstrate global before-hook rewrite.
+
+* Create `MartyrDecorator : PieceDecoratorBase, IBeforeEventHook`.
+* In `BeforeEvent`, if candidate is `PieceCaptured` targeting an adjacent friendly piece, return a **rewritten** candidate targeting `this` piece instead.
+* Ensure `Commit` only stores the rewritten canonical event.
+
+**Exit criteria:** Tests show original capture is not published; martyr capture is published, and board state reflects sacrifice.
+
+---
+
+## Step 11 — Player Controllers & AI Sandbox
+
+**Goal:** Human + baseline AI; isolated simulation for evaluation.
+
+* `IPlayerController { Move? SelectMove(GameState state); }`
+* `RandomAIController` as baseline.
+* **Simulation API**:
+
+  * `GameState Simulate(GameState state, Move move)`:
+
+    * clone state; run `Commit(CandidateEvent MoveApplied)` + resolve resulting chain; **do not** append to canonical history; **do not** publish.
+* **Evaluation**:
+
+  * `int Evaluate(GameState state)` summing piece `GetValue()` + decorator/status contributions; add positional heuristics later.
+
+**Exit criteria:** AI can pick a random legal move; simulation returns hypothetical next state without altering history.
+
+---
+
+## Step 12 — UI Integration (WinForms Demo)
+
+**Goal:** Hook up to canonical events & history; quality-of-life.
+
+* Replace old runner calls with `GameEngine`.
+* Subscribe to `OnEventPublished` for redraws & “last move” highlighting (only when `IsPlayerAction == true`).
+* Add Undo/Redo buttons (and keyboard shortcuts ←/→).
+* Keep SVG rendering & responsive sizing from prior demo.
+
+**Exit criteria:** Playable Human vs AI demo; highlights last user move; undo/redo works.
+
+---
+
+## Step 13 — Serialization (Optional Now, Needed Later)
+
+**Goal:** Save/load canonical history for replays.
+
+* Define DTOs for `GameEvent` payloads and `GameState`.
+* Use versioned serialization (include schema version in save file).
+* Provide `SaveReplay(file)` / `LoadReplay(file)` in engine.
+
+**Exit criteria:** Can save a short game and reload/replay deterministically.
+
+---
+
+## Step 14 — Testing Strategy
+
+**Goal:** Guard the invariants & gameplay contracts.
+
+* Unit tests:
+
+  * **Invariant:** 1 canonical `GameEvent` produces exactly 1 `GameState` snapshot.
+  * Hook rewrite: Martyr rewrites capture; original not published.
+  * Tiles: slippery produces forced slide snapshot; scorched applies burning.
+  * Deep clone behavior across board/pieces/statuses.
+* Property tests (optional): move → state → undo → state equality.
+* Performance smoke tests: long chains of effects remain < few MB per 1k events.
+
+**Exit criteria:** Test suite green; CI in place.
+
+---
+
+## Step 15 — Documentation & Examples
+
+**Goal:** Make it easy to extend.
+
+* README for Engine with examples:
+
+  * Adding a new tile
+  * Adding a new decorator ability
+  * Writing an IBeforeEventHook
+  * Simulating moves in AI
+* Diagrams for the pipeline (candidate → hooks → commit → publish).
+
+**Exit criteria:** Docs explain how to build an effect without touching engine internals.
+
+---
+
+## Step 16 — Future Enhancements (Backlog)
+
+* **After hooks** for non-mutating side effects (e.g., VFX triggers) without altering canonical state.
+* **Branching history** for “what-if” timelines (opt-in; keep single path as default).
+* **Concurrent AI search** with copy-on-write boards.
+* **Typed event payloads** per `GameEventType` (discriminated unions in C# 12/records).
+* **Unity front-end** consuming the same canonical stream.
+
+---
+
+## Mermaid Architecture (Reference)
+
+```mermaid
+classDiagram
+    class GameEngine {
+      - List~(GameEvent, GameState)~ history
+      - int currentIndex
+      + RunTurn()
+      + Commit(CandidateEvent)
+      + Undo()/Redo()/JumpTo()
+      + CurrentState
+      + OnEventPublished(GameEvent)
+    }
+
+    class GameState {
+      + Board board
+      + PlayerColor currentPlayer
+      + int turnNumber
+      + Clone()
+    }
+
+    class Board {
+      + GetPieceAt(pos)
+      + MovePiece(from,to)
+      + SetTile(pos,tile)
+      + GetTile(pos)
+      + Clone()
+    }
+
+    class ITile {
+      + OnEnter(piece,pos,state) CandidateEvent*
+      + OnExit(piece,pos,state) CandidateEvent*
+      + OnTurnStart(piece,pos,state) CandidateEvent*
+    }
+
+    class IPiece {
+      + GetPseudoLegalMoves(state)
+      + OnMove(move,state) CandidateEvent*
+      + OnCapture(state) CandidateEvent*
+      + GetValue() int
+      + Clone()
+    }
+
+    class PieceDecoratorBase {
+      + wraps IPiece
+    }
+
+    class IStatusEffect {
+      + OnTurnStart(piece,state) CandidateEvent*
+      + GetValue() int
+    }
+
+    class IRuleSet {
+      + GetLegalMoves(state,piece)
+      + IsGameOver(state)
+    }
+
+    class CandidateEvent
+    class GameEvent
+
+    GameEngine --> GameState
+    GameEngine --> IRuleSet
+    GameEngine --> CandidateEvent
+    GameEngine --> GameEvent
+    GameState --> Board
+    Board --> ITile
+    GameState --> IPiece
+    IPiece <|-- PieceDecoratorBase
+    IPiece --> IStatusEffect
+    ITile --> CandidateEvent
+    IPiece --> CandidateEvent
+    IStatusEffect --> CandidateEvent
+    GameEvent --> GameState
+```
+
+---
+
+### Notes for Future Agents
+
+* Always implement **one step at a time** and run tests. Do not skip ahead.
+* Never publish `CandidateEvent`s. Only `GameEvent` should be broadcast and historized.
+* Keep all mutations in `GameEngine.Commit` to maintain undo/redo correctness.
+* Prefer **typed payloads** over string messages in events.
+* If performance becomes a concern, switch deep clones to structured copy-on-write for board/pieces.
