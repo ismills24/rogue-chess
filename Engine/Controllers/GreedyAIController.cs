@@ -2,6 +2,7 @@
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
 using RogueChess.Engine.RuleSets;
+using System.Diagnostics;
 
 namespace RogueChess.Engine.Controllers
 {
@@ -19,9 +20,17 @@ namespace RogueChess.Engine.Controllers
 
         public Move? SelectMove(GameState state)
         {
+            var stopwatch = Stopwatch.StartNew();
+            
             var moves = state.GetAllLegalMoves(_ruleset).ToList();
             if (moves.Count == 0)
+            {
+                stopwatch.Stop();
+                Console.WriteLine($"[GreedyAI] No legal moves available. Time: {stopwatch.ElapsedMilliseconds}ms");
                 return null;
+            }
+
+            Console.WriteLine($"[GreedyAI] Starting move calculation with depth {_depth}, evaluating {moves.Count} moves...");
 
             int bestScore = int.MinValue;
             var bestMoves = new List<Move>();
@@ -43,24 +52,38 @@ namespace RogueChess.Engine.Controllers
                 }
             }
 
+            stopwatch.Stop();
+            
             if (bestMoves.Count == 0)
+            {
+                Console.WriteLine($"[GreedyAI] No best moves found. Time: {stopwatch.ElapsedMilliseconds}ms");
                 return null;
-            return bestMoves[_rng.Next(bestMoves.Count)];
+            }
+
+            var selectedMove = bestMoves[_rng.Next(bestMoves.Count)];
+            Console.WriteLine($"[GreedyAI] Selected move from {bestMoves.Count} best moves (score: {bestScore}). Total time: {stopwatch.ElapsedMilliseconds}ms");
+            
+            return selectedMove;
         }
 
         // Standard negamax with alpha-beta
         private int Negamax(GameState node, int depth, int alpha, int beta)
         {
-            // Base eval is always “white POV”
+            // Base eval is always "white POV"
             if (depth == 0 || IsTerminal(node))
                 return EvalFromSideToMove(node);
 
+            var moves = node.GetAllLegalMoves(_ruleset).ToList();
             int value = int.MinValue;
-            foreach (var move in node.GetAllLegalMoves(_ruleset))
+            int movesEvaluated = 0;
+            
+            foreach (var move in moves)
             {
                 var child = GameEngine.SimulateTurn(node, move, _ruleset);
 
                 int score = -Negamax(child, depth - 1, -beta, -alpha);
+                movesEvaluated++;
+                
                 if (score > value)
                     value = score;
                 if (value > alpha)
