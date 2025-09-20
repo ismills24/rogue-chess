@@ -1,4 +1,5 @@
 using RogueChess.Engine.Interfaces;
+using RogueChess.Engine.Pieces;
 using RogueChess.Engine.Primitives;
 using RogueChess.Engine.RuleSets;
 
@@ -133,29 +134,21 @@ namespace RogueChess.Engine
         {
             int score = 0;
 
-            // Evaluate all pieces on the board
             for (int x = 0; x < Board.Width; x++)
             {
                 for (int y = 0; y < Board.Height; y++)
                 {
                     var pos = new Vector2Int(x, y);
                     var piece = Board.GetPieceAt(pos);
-                    if (piece != null)
-                    {
-                        var pieceValue = piece.GetValue();
-                        if (piece.Owner == PlayerColor.White)
-                        {
-                            score += pieceValue;
-                        }
-                        else
-                        {
-                            score -= pieceValue;
-                        }
-                    }
+                    if (piece == null)
+                        continue;
+
+                    var v = PieceValueCalculator.GetTotalValue(piece); // <-- includes decorators/status
+                    score += piece.Owner == PlayerColor.White ? v : -v;
                 }
             }
 
-            return score;
+            return score; // + = good for White, - = good for Black
         }
 
         /// <summary>

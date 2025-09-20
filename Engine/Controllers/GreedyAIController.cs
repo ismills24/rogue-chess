@@ -1,90 +1,96 @@
+// Engine/Controllers/GreedyAIController.cs
 using RogueChess.Engine.Interfaces;
-using RogueChess.Engine.Pieces;
 using RogueChess.Engine.Primitives;
 using RogueChess.Engine.RuleSets;
 
 namespace RogueChess.Engine.Controllers
 {
-    /// <summary>
-    /// Depth-1 greedy AI: evaluates all legal moves and picks the one
-    /// that maximizes the piece value difference for the current player.
-    /// </summary>
     public class GreedyAIController : IPlayerController
     {
         private readonly IRuleSet _ruleset;
+        private readonly int _depth;
+        private readonly Random _rng = new();
 
-        public GreedyAIController(IRuleSet ruleset)
+        public GreedyAIController(IRuleSet ruleset, int depth = 3)
         {
             _ruleset = ruleset ?? throw new ArgumentNullException(nameof(ruleset));
+            _depth = Math.Max(1, depth);
         }
 
         public Move? SelectMove(GameState state)
         {
-            var currentPlayer = state.CurrentPlayer;
-            var pieces = state.Board.GetAllPieces(currentPlayer).ToList();
-
-            if (!pieces.Any())
+            var moves = state.GetAllLegalMoves(_ruleset).ToList();
+            if (moves.Count == 0)
                 return null;
 
-            // Collect all legal moves
-            var allLegalMoves = new List<Move>();
-            foreach (var piece in pieces)
-            {
-                var legalMoves = _ruleset.GetLegalMoves(state, piece).ToList();
-                allLegalMoves.AddRange(legalMoves);
-            }
-
-            if (!allLegalMoves.Any())
-                return null;
-
-            Move? bestMove = null;
             int bestScore = int.MinValue;
+            var bestMoves = new List<Move>();
 
-            foreach (var move in allLegalMoves)
+            foreach (var move in moves)
             {
-                // Simulate the move by cloning state and applying the move
-                var clonedState = state.Clone(); // You’ll need Clone() on GameState
-                var engine = new GameEngine(
-                    clonedState,
-                    new NullController(), // dummy controllers, won’t be used
-                    new NullController(),
-                    _ruleset
-                );
+                var next = GameEngine.SimulateTurn(state, move, _ruleset); // ✅ direct call
+                int score = -Negamax(next, _depth - 1, int.MinValue / 2, int.MaxValue / 2);
 
-                engine.ProcessMove(move);
-
-                var eval = EvaluateBoard(engine.CurrentState, currentPlayer);
-
-                if (eval > bestScore)
+                if (score > bestScore)
                 {
-                    bestScore = eval;
-                    bestMove = move;
+                    bestScore = score;
+                    bestMoves.Clear();
+                    bestMoves.Add(move);
+                }
+                else if (score == bestScore)
+                {
+                    bestMoves.Add(move);
                 }
             }
 
-            return bestMove;
+            if (bestMoves.Count == 0)
+                return null;
+            return bestMoves[_rng.Next(bestMoves.Count)];
         }
 
-        private int EvaluateBoard(GameState state, PlayerColor player)
+        // Standard negamax with alpha-beta
+        private int Negamax(GameState node, int depth, int alpha, int beta)
         {
-            int whiteScore = state
-                .Board.GetAllPieces(PlayerColor.White)
-                .Sum(p => PieceValueCalculator.GetTotalValue(p));
+            // Base eval is always “white POV”
+            if (depth == 0 || IsTerminal(node))
+                return EvalFromSideToMove(node);
 
-            int blackScore = state
-                .Board.GetAllPieces(PlayerColor.Black)
-                .Sum(p => PieceValueCalculator.GetTotalValue(p));
+            int value = int.MinValue;
+            foreach (var move in node.GetAllLegalMoves(_ruleset))
+            {
+                var child = GameEngine.SimulateTurn(node, move, _ruleset);
 
-            return player == PlayerColor.White ? whiteScore - blackScore : blackScore - whiteScore;
+                int score = -Negamax(child, depth - 1, -beta, -alpha);
+                if (score > value)
+                    value = score;
+                if (value > alpha)
+                    alpha = value;
+                if (alpha >= beta)
+                    break; // alpha-beta cutoff
+            }
+
+            // No legal moves (terminal); return leaf eval
+            if (value == int.MinValue)
+                return EvalFromSideToMove(node);
+
+            return value;
         }
-    }
 
-    /// <summary>
-    /// Dummy controller that never selects a move.
-    /// Used when simulating moves inside the AI.
-    /// </summary>
-    public class NullController : IPlayerController
-    {
-        public Move? SelectMove(GameState state) => null;
+        private bool IsTerminal(GameState s) => _ruleset.IsGameOver(s, out _);
+
+        // Convert white-POV eval into “side-to-move POV” (negamax canonical form)
+        private int EvalFromSideToMove(GameState s)
+        {
+            int baseEval = s.Evaluate(); // + for White, - for Black
+            return s.CurrentPlayer == PlayerColor.White ? baseEval : -baseEval;
+        }
+
+        // Dummy controllers for the simulation engine (never used interactively)
+        private static IPlayerController Dummy() => new NoopController();
+
+        private sealed class NoopController : IPlayerController
+        {
+            public Move? SelectMove(GameState state) => null;
+        }
     }
 }

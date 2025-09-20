@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RogueChess.UI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7a68e295b6368a808636ce3c8aed8a6235919833")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9abf236e5e797d310228144e979252622d28e673")]
 [assembly: System.Reflection.AssemblyProductAttribute("RogueChess.UI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RogueChess.UI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -231,12 +231,12 @@ namespace RogueChess.UI
                     break;
                 case PlayerMode.HumanVsAI:
                     _whitePlayer = _whiteHuman = new EngineHumanController(_ruleset);
-                    _blackPlayer = new RandomAIController(_ruleset);
+                    _blackPlayer = new GreedyAIController(_ruleset);
                     _blackHuman = null;
                     break;
                 case PlayerMode.AIVsAI:
-                    _whitePlayer = new RandomAIController(_ruleset);
-                    _blackPlayer = new RandomAIController(_ruleset);
+                    _whitePlayer = new GreedyAIController(_ruleset);
+                    _blackPlayer = new GreedyAIController(_ruleset);
                     _whiteHuman = null;
                     _blackHuman = null;
                     break;
