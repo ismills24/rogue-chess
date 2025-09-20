@@ -231,15 +231,3 @@ while (!engine.IsGameOver())
     engine.RunTurn();
 ```
 ```
-
-The README.md has been updated with the new content, properly formatted in markdown. The new version reflects the updated architecture with:
-
-- Split GameEngine partials (ProcessMove.cs, Turns.cs, Events.cs, Simulation.cs)
-- Events/hooks system with CandidateEvent pipeline
-- MinimaxAIController for AI depth search
-- Roguelike mechanics and status effects
-- Updated folder structure matching the current codebase
-- More detailed interface documentation
-- Better organization of core concepts
-
-The markdown formatting includes proper code blocks, headers, lists, and emphasis to make the documentation clear and readable.
