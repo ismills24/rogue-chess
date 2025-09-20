@@ -179,6 +179,17 @@ namespace RogueChess.Engine
                 case GameEventType.MoveCancelled:
                     // no board mutation; attacker remains at From
                     break;
+
+                case GameEventType.PiecePromoted:
+                    if (gameEvent.Payload is PiecePromotedPayload promo)
+                    {
+                        var pos = promo.Position;
+                        if (newBoard.GetPieceAt(pos) != null)
+                            newBoard.RemovePiece(pos);
+
+                        newBoard.PlacePiece(promo.NewPiece, pos);
+                    }
+                    break;
             }
 
             return new GameState(newBoard, newCurrentPlayer, newTurnNumber);

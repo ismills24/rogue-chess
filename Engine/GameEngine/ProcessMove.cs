@@ -1,5 +1,6 @@
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Interfaces;
+using RogueChess.Engine.Pieces;
 using RogueChess.Engine.Primitives;
 
 namespace RogueChess.Engine
@@ -60,6 +61,26 @@ namespace RogueChess.Engine
             if (moveRes == null || moveRes.Type == GameEventType.MoveCancelled)
                 return;
             currentState = CurrentState;
+
+            // After applying the MoveApplied event
+            if (mover is Pawn pawn)
+            {
+                var promotionRank =
+                    (pawn.Owner == PlayerColor.White) ? currentState.Board.Height - 1 : 0;
+
+                if (move.To.Y == promotionRank)
+                {
+                    var queen = new Queen(pawn.Owner, move.To);
+
+                    // Replace pawn with queen
+                    var promoteEvent = new CandidateEvent(
+                        GameEventType.PiecePromoted,
+                        false,
+                        new PiecePromotedPayload(pawn, queen, move.To)
+                    );
+                    Commit(promoteEvent);
+                }
+            }
 
             // --- 3) Piece-specific post-move effects ---
             foreach (var ev in mover.OnMove(move, currentState))

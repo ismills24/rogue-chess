@@ -11,4 +11,8 @@ namespace RogueChess.Engine.Events
 
     /// <summary>Payload for when a move is cancelled.</summary>
     public record MoveCancelledPayload(IPiece Attacker, Move OriginalMove);
+
+    /// <summary>Payload for when a piece is promoted.</summary>
+    public record PiecePromotedPayload(IPiece OldPiece, IPiece NewPiece, Vector2Int Position);
+
 }

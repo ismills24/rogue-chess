@@ -11,7 +11,7 @@ namespace RogueChess.Engine.Controllers
         private readonly int _depth;
         private readonly Random _rng = new();
 
-        public GreedyAIController(IRuleSet ruleset, int depth = 3)
+        public GreedyAIController(IRuleSet ruleset, int depth = 5)
         {
             _ruleset = ruleset ?? throw new ArgumentNullException(nameof(ruleset));
             _depth = Math.Max(1, depth);
