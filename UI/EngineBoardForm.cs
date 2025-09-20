@@ -100,6 +100,11 @@ namespace RogueChess.UI
                 null,
                 (s, e) => SetGameMode(new RandomChessMode())
             );
+            var draftModeItem = new ToolStripMenuItem(
+                "Draft Chess",
+                null,
+                (s, e) => SetGameMode(new DraftChessMode())
+            );
 
             var playerMenu = new ToolStripMenuItem("Players");
             var humanVsHumanItem = new ToolStripMenuItem(
@@ -123,7 +128,7 @@ namespace RogueChess.UI
             var exitItem = new ToolStripMenuItem("Exit", null, (s, e) => Close());
 
             gameModeMenu.DropDownItems.AddRange(
-                new ToolStripItem[] { standardModeItem, randomModeItem }
+                new ToolStripItem[] { standardModeItem, randomModeItem, draftModeItem }
             );
             playerMenu.DropDownItems.AddRange(
                 new ToolStripItem[] { humanVsHumanItem, humanVsAIItem, aiVsAIItem }

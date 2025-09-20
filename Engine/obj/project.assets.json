@@ -5447,19 +5447,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Isaac\\.nuget\\packages\\": {}
+    "C:\\Users\\natha\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Engine\\RogueChess.Engine.csproj",
+      "projectUniqueName": "C:\\Users\\natha\\gameDev\\rogue-chess\\Engine\\RogueChess.Engine.csproj",
       "projectName": "RogueChess.Engine",
-      "projectPath": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Engine\\RogueChess.Engine.csproj",
-      "packagesPath": "C:\\Users\\Isaac\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Isaac\\Documents\\Git\\rogue-chess\\Engine\\obj\\",
+      "projectPath": "C:\\Users\\natha\\gameDev\\rogue-chess\\Engine\\RogueChess.Engine.csproj",
+      "packagesPath": "C:\\Users\\natha\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\natha\\gameDev\\rogue-chess\\Engine\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Isaac\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\natha\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
@@ -5482,8 +5482,7 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      },
-      "SdkAnalysisLevel": "9.0.300"
+      }
     },
     "frameworks": {
       "net8.0": {
@@ -5515,26 +5514,12 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "downloadDependencies": [
-          {
-            "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[8.0.20, 8.0.20]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Ref",
-            "version": "[8.0.20, 8.0.20]"
-          },
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[8.0.20, 8.0.20]"
-          }
-        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.305/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.407/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
