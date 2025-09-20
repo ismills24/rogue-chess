@@ -657,7 +657,7 @@ namespace RogueChess.UI
         private void OnGameEventPublished(GameEvent gameEvent)
         {
             // Update debug panel if it's open
-            _debugPanel?.AddEvent(gameEvent);
+            _debugPanel?.AddEvent(gameEvent, _gameEngine.CurrentState);
 
             // Update last move highlighting for player actions
             if (gameEvent.IsPlayerAction && gameEvent.Payload is MovePayload movePayload)

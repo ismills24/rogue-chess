@@ -2,13 +2,16 @@ using System;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using RogueChess.Engine;
 using RogueChess.Engine.Events;
+using RogueChess.Engine.Pieces;
+using RogueChess.Engine.Primitives;
 
 namespace RogueChess.UI
 {
     /// <summary>
     /// Debug panel that shows GameEvents from the canonical pipeline.
-    /// This helps developers understand what's happening in the game engine.
+    /// Also includes live piece values for both players.
     /// </summary>
     public partial class DebugPanelForm : Form
     {
@@ -16,6 +19,9 @@ namespace RogueChess.UI
         private TextBox _eventDetailsTextBox = null!;
         private Button _clearButton = null!;
         private CheckBox _autoScrollCheckBox = null!;
+        private Label _valueSummaryLabel = null!;
+
+        private GameState? _latestState;
 
         public DebugPanelForm()
         {
@@ -25,7 +31,7 @@ namespace RogueChess.UI
         private void InitializeComponent()
         {
             Text = "Rogue Chess - Debug Panel";
-            Size = new Size(600, 400);
+            Size = new Size(650, 450);
             StartPosition = FormStartPosition.Manual;
             Location = new Point(100, 100);
 
@@ -90,7 +96,7 @@ namespace RogueChess.UI
             detailsPanel.Controls.Add(_eventDetailsTextBox);
 
             // Control panel (bottom)
-            var controlPanel = new Panel { Dock = DockStyle.Bottom, Height = 40 };
+            var controlPanel = new Panel { Dock = DockStyle.Bottom, Height = 60 };
             Controls.Add(controlPanel);
 
             _clearButton = new Button
@@ -111,6 +117,15 @@ namespace RogueChess.UI
             };
             controlPanel.Controls.Add(_autoScrollCheckBox);
 
+            _valueSummaryLabel = new Label
+            {
+                Text = "White Value: 0 | Black Value: 0",
+                Location = new Point(300, 15),
+                AutoSize = true,
+                Font = new Font("Consolas", 9, FontStyle.Bold),
+            };
+            controlPanel.Controls.Add(_valueSummaryLabel);
+
             // Set column widths
             mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
             mainPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
@@ -119,16 +134,20 @@ namespace RogueChess.UI
         /// <summary>
         /// Add a new GameEvent to the debug panel.
         /// </summary>
-        public void AddEvent(GameEvent gameEvent)
+        public void AddEvent(GameEvent gameEvent, GameState state)
         {
             if (InvokeRequired)
             {
-                Invoke(new Action<GameEvent>(AddEvent), gameEvent);
+                Invoke(new Action<GameEvent, GameState>(AddEvent), gameEvent, state);
                 return;
             }
 
+            _latestState = state;
+
             var eventText = FormatEventForList(gameEvent);
             _eventListBox.Items.Add(eventText);
+
+            UpdatePieceValues(state);
 
             if (_autoScrollCheckBox.Checked)
             {
@@ -150,27 +169,18 @@ namespace RogueChess.UI
 
             _eventListBox.Items.Clear();
             _eventDetailsTextBox.Clear();
+            _valueSummaryLabel.Text = "White Value: 0 | Black Value: 0";
         }
 
         private void EventListBox_SelectedIndexChanged(object? sender, EventArgs e)
         {
             if (_eventListBox.SelectedItem is string selectedText)
             {
-                // Extract event ID from the selected text
-                var parts = selectedText.Split('|');
-                if (parts.Length > 0 && Guid.TryParse(parts[0].Trim(), out var eventId))
-                {
-                    // Find the corresponding GameEvent and show details
-                    // For now, we'll show the selected text as details
-                    _eventDetailsTextBox.Text = selectedText;
-                }
+                _eventDetailsTextBox.Text = selectedText;
             }
         }
 
-        private void ClearButton_Click(object? sender, EventArgs e)
-        {
-            ClearEvents();
-        }
+        private void ClearButton_Click(object? sender, EventArgs e) => ClearEvents();
 
         private string FormatEventForList(GameEvent gameEvent)
         {
@@ -179,7 +189,8 @@ namespace RogueChess.UI
             var type = gameEvent.Type.ToString();
             var payload = FormatPayload(gameEvent.Payload);
 
-            return $"{gameEvent.Id} | {timestamp} | {playerAction} | {type} | {payload}";
+            // Cleaner: no GUID in the list
+            return $"{timestamp} | {playerAction} | {type} | {payload}";
         }
 
         private string FormatPayload(object? payload)
@@ -189,23 +200,27 @@ namespace RogueChess.UI
 
             return payload switch
             {
-                MovePayload movePayload =>
-                    $"Move: {movePayload.Piece.Name} from {movePayload.From} to {movePayload.To}",
-                CapturePayload capturePayload =>
-                    $"Capture: {capturePayload.Target.Name} at {capturePayload.Target.Position}",
-                TileChangePayload tilePayload =>
-                    $"Tile Change: {tilePayload.Position} -> {tilePayload.NewTile.GetType().Name}",
-                StatusApplyPayload statusPayload =>
-                    $"Status: {statusPayload.Effect.GetType().Name} on {statusPayload.Target.Name}",
-                ForcedSlidePayload slidePayload =>
-                    $"Forced Slide: {slidePayload.Piece.Name} from {slidePayload.From} to {slidePayload.To}",
-                // Note: These payload types are defined in the Engine but not yet implemented
-                // For now, we'll handle them generically
-                _ when payload.GetType().Name.Contains("Destroy") => $"Destroy: {payload}",
-                _ when payload.GetType().Name.Contains("Tick") => $"Status Tick: {payload}",
-                _ when payload.GetType().Name.Contains("Turn") => $"Turn: {payload}",
+                MovePayload mv => $"Move: {mv.Piece.Name} {mv.From}→{mv.To}",
+                CapturePayload cap => $"Capture: {cap.Target.Name} at {cap.Target.Position}",
+                TileChangePayload tile => $"Tile {tile.Position} → {tile.NewTile.GetType().Name}",
+                StatusApplyPayload status =>
+                    $"Status {status.Effect.GetType().Name} on {status.Target.Name}",
+                ForcedSlidePayload slide => $"Slide {slide.Piece.Name} {slide.From}→{slide.To}",
                 _ => payload.ToString() ?? "Unknown",
             };
+        }
+
+        private void UpdatePieceValues(GameState state)
+        {
+            var whiteValue = state
+                .Board.GetAllPieces(PlayerColor.White)
+                .Sum(p => PieceValueCalculator.GetTotalValue(p));
+
+            var blackValue = state
+                .Board.GetAllPieces(PlayerColor.Black)
+                .Sum(p => PieceValueCalculator.GetTotalValue(p));
+
+            _valueSummaryLabel.Text = $"White Value: {whiteValue} | Black Value: {blackValue}";
         }
     }
 }

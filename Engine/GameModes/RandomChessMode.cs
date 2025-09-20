@@ -150,23 +150,31 @@ namespace RogueChess.Engine.GameModes
 
         private IPiece AddRandomDecorators(IPiece piece, Type[] decoratorTypes)
         {
-            // Randomly add decorators (30% chance each)
+            // Randomly add a status effect (30% chance)
             if (_random.NextDouble() < 0.3)
             {
-                var decoratorType = typeof(StatusEffectDecorator);
-                piece = (IPiece)Activator.CreateInstance(decoratorType, piece)!;
+                var effects = new RogueChess.Engine.StatusEffects.IStatusEffect[]
+                {
+                    new RogueChess.Engine.StatusEffects.BurningStatus(),
+                    // add more when you implement them, e.g. new PoisonedStatus()
+                };
+                var effect = effects[_random.Next(effects.Length)];
+
+                var statusDecorator = new StatusEffectDecorator(piece);
+                statusDecorator.AddStatus(effect);
+                piece = statusDecorator;
             }
 
+            // Randomly add Exploding (30%)
             if (_random.NextDouble() < 0.3)
             {
-                var decoratorType = typeof(ExplodingDecorator);
-                piece = (IPiece)Activator.CreateInstance(decoratorType, piece)!;
+                piece = new ExplodingDecorator(piece);
             }
 
+            // Randomly add Martyr (30%)
             if (_random.NextDouble() < 0.3)
             {
-                var decoratorType = typeof(MartyrDecorator);
-                piece = (IPiece)Activator.CreateInstance(decoratorType, piece)!;
+                piece = new MartyrDecorator(piece);
             }
 
             return piece;
