@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Primitives;
 
 namespace RogueChess.Engine.WinConditions
@@ -16,3 +19,6 @@ namespace RogueChess.Engine.WinConditions
         bool IsGameOver(GameState state, out PlayerColor? winner);
     }
 }
+
+
+

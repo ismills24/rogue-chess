@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
 using RogueChess.Engine.RuleSets;
@@ -61,3 +64,6 @@ namespace RogueChess.Engine.WinConditions
         }
     }
 }
+
+
+

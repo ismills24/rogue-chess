@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Board;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Pieces;
@@ -42,3 +45,6 @@ namespace RogueChess.Engine.GameModes
         }
     }
 }
+
+
+

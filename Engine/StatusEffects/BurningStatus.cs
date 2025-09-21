@@ -1,6 +1,7 @@
 // File: Engine/StatusEffects/BurningStatus.cs
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
@@ -41,3 +42,4 @@ namespace RogueChess.Engine.StatusEffects
         public override IStatusEffect Clone() => new BurningStatus(Duration);
     }
 }
+

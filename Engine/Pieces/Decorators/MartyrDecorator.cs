@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Hooks;
 using RogueChess.Engine.Interfaces;
@@ -58,9 +61,4 @@ namespace RogueChess.Engine.Pieces.Decorators
 
         protected override IPiece CreateDecoratorClone(IPiece inner) => new MartyrDecorator(inner);
     }
-
-    /// <summary>
-    /// Payload for cancelling a move (attacker stays in place).
-    /// </summary>
-    public record MoveCancelledPayload(IPiece Attacker, Vector2Int From, Vector2Int To);
 }

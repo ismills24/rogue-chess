@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
@@ -51,7 +54,7 @@ namespace RogueChess.Engine.Pieces
                     var target = state.Board.GetPieceAt(diag);
                     if (target != null && target.Owner != Owner)
                     {
-                        moves.Add(new Move(Position, diag, this, IsCapture: true));
+                        moves.Add(new Move(Position, diag, this, isCapture: true));
                     }
                 }
             }
