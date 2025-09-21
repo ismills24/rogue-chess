@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace RogueChess.Engine.Primitives
 {
     /// <summary>
@@ -16,10 +20,10 @@ namespace RogueChess.Engine.Primitives
         }
 
         public static Vector2Int operator +(Vector2Int a, Vector2Int b) =>
-            new(a.X + b.X, a.Y + b.Y);
+            new Vector2Int(a.X + b.X, a.Y + b.Y);
 
         public static Vector2Int operator -(Vector2Int a, Vector2Int b) =>
-            new(a.X - b.X, a.Y - b.Y);
+            new Vector2Int(a.X - b.X, a.Y - b.Y);
 
         public static bool operator ==(Vector2Int a, Vector2Int b) => a.X == b.X && a.Y == b.Y;
 

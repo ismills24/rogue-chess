@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Controllers;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Interfaces;
@@ -130,5 +133,15 @@ namespace RogueChess.Engine
         }
     }
 
-    public record TurnAdvancedPayload(PlayerColor NewPlayer, int TurnNumber);
+    public class TurnAdvancedPayload
+    {
+        public PlayerColor NewPlayer { get; }
+        public int TurnNumber { get; }
+
+        public TurnAdvancedPayload(PlayerColor newPlayer, int turnNumber)
+        {
+            NewPlayer = newPlayer;
+            TurnNumber = turnNumber;
+        }
+    }
 }

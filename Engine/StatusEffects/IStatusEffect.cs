@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Interfaces;
 
@@ -30,3 +33,6 @@ namespace RogueChess.Engine.StatusEffects
         IStatusEffect Clone();
     }
 }
+
+
+

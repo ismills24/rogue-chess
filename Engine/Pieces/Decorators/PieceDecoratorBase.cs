@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Hooks;
 using RogueChess.Engine.Interfaces;

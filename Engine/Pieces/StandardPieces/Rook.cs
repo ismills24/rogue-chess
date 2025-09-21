@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
 
@@ -29,3 +32,6 @@ namespace RogueChess.Engine.Pieces
         protected override IPiece CreateClone() => new Rook(Owner, Position);
     }
 }
+
+
+

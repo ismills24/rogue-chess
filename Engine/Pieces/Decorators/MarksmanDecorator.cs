@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Pieces;
@@ -33,7 +36,7 @@ namespace RogueChess.Engine.Pieces.Decorators
             foreach (var move in Inner.GetPseudoLegalMoves(state))
             {
                 yield return move;
-                
+
                 // Only create ranged capture moves if we have charges left
                 if (_rangedAttacksLeft > 0)
                 {
@@ -49,7 +52,6 @@ namespace RogueChess.Engine.Pieces.Decorators
             }
         }
 
-
         /// <summary>
         /// When a ranged capture is made, the piece moves to the target but then moves back.
         /// We generate a "move back" effect to return the piece to its original position.
@@ -62,13 +64,13 @@ namespace RogueChess.Engine.Pieces.Decorators
             {
                 // This is a ranged capture - consume one charge
                 _rangedAttacksLeft--;
-                
+
                 // First let the normal move processing happen
                 foreach (var ev in Inner.OnMove(move, state))
                 {
                     yield return ev;
                 }
-                
+
                 // Then generate a "move back" effect to return the piece to its original position
                 yield return new CandidateEvent(
                     GameEventType.MoveApplied,
