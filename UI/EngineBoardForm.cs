@@ -106,12 +106,6 @@ namespace RogueChess.UI
                 (s, e) => SetGameMode(new DraftChessMode())
             );
 
-             var draftModeItem = new ToolStripMenuItem(
-                "Draft Chess",
-                null,
-                (s, e) => SetGameMode(new DraftChessMode())
-            );
-
             var playerMenu = new ToolStripMenuItem("Players");
             var humanVsHumanItem = new ToolStripMenuItem(
                 "Human vs Human",
@@ -203,7 +197,7 @@ namespace RogueChess.UI
         private void InitializeGame()
         {
             // Set default game mode
-            SetGameMode(new StandardChessMode());
+            SetGameMode(new DraftChessMode());
         }
 
         private void SetGameMode(IGameMode gameMode)
@@ -266,7 +260,7 @@ namespace RogueChess.UI
 
             if (_gameMode == null)
             {
-                SetGameMode(new StandardChessMode());
+                SetGameMode(new DraftChessMode());
                 return;
             }
 
@@ -405,6 +399,7 @@ namespace RogueChess.UI
             var hasExploding = HasDecorator(piece, typeof(ExplodingDecorator));
             var hasStatusEffect = HasDecorator(piece, typeof(StatusEffectDecorator));
             var hasMartyr = HasDecorator(piece, typeof(MartyrDecorator));
+            var hasMarksman = HasDecorator(piece, typeof(MarksmanDecorator));
 
             // Add visual indicators
             if (hasExploding)
@@ -431,6 +426,36 @@ namespace RogueChess.UI
                     cell.ForeColor = Color.Blue;
                     cell.Font = new Font("Arial", 8, FontStyle.Bold);
                 }
+            }
+
+            if (hasMarksman)
+            {
+                // Add a crosshair indicator for marksman
+                // Check if the marksman charges are available
+                var marksmanDecorator = GetMarksmanDecorator(piece);
+                if (marksmanDecorator != null)
+                {
+                    var chargesLeft = GetRangedAttacksLeft(marksmanDecorator);
+                    if (chargesLeft <= 0)
+                    {
+                        // No charges left - show different symbol
+                        cell.Text = cell.Text + "❌";
+                        cell.ForeColor = Color.Gray;
+                    }
+                    else
+                    {
+                        // Charges available - show symbol with count
+                        cell.Text = cell.Text + $"🎯{chargesLeft}";
+                        cell.ForeColor = Color.DarkGreen;
+                    }
+                }
+                else
+                {
+                    // Fallback - just show the symbol
+                    cell.Text = cell.Text + "🎯";
+                    cell.ForeColor = Color.DarkGreen;
+                }
+                cell.Font = new Font("Arial", 8, FontStyle.Bold);
             }
         }
 
@@ -482,6 +507,36 @@ namespace RogueChess.UI
                 current = decorator.Inner;
             }
             return false;
+        }
+
+        private MarksmanDecorator? GetMarksmanDecorator(IPiece piece)
+        {
+            // Find the MarksmanDecorator in the decorator chain
+            var current = piece;
+            while (current is PieceDecoratorBase decorator)
+            {
+                if (current is MarksmanDecorator marksman)
+                    return marksman;
+                current = decorator.Inner;
+            }
+            return null;
+        }
+
+        private bool HasUsedRangedAttack(MarksmanDecorator marksmanDecorator)
+        {
+            // Use reflection to check if charges are available
+            var field = typeof(MarksmanDecorator).GetField("_rangedAttacksLeft", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var chargesLeft = field?.GetValue(marksmanDecorator) as int? ?? 0;
+            return chargesLeft <= 0;
+        }
+
+        private int GetRangedAttacksLeft(MarksmanDecorator marksmanDecorator)
+        {
+            // Use reflection to get the number of charges left
+            var field = typeof(MarksmanDecorator).GetField("_rangedAttacksLeft", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            return field?.GetValue(marksmanDecorator) as int? ?? 0;
         }
 
         private void UpdateDisplay()

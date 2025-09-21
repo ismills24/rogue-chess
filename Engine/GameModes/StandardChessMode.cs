@@ -6,6 +6,7 @@ using RogueChess.Engine.Primitives;
 using RogueChess.Engine.RuleSets;
 using RogueChess.Engine.StatusEffects;
 using RogueChess.Engine.Tiles;
+using RogueChess.Engine.GameModes.PiecePlacementInit;
 
 namespace RogueChess.Engine.GameModes
 {
@@ -18,96 +19,19 @@ namespace RogueChess.Engine.GameModes
         public string Description =>
             "Traditional chess with standard pieces and no special effects";
 
+        public RogueChess.Engine.GameModes.PiecePlacementInit.PiecePlacementInit GetPiecePlacementInit()
+        {
+            return new StandardChessPlacement();
+        }
+
         public IBoard SetupBoard()
         {
             var board = new RogueChess.Engine.Board.Board(8, 8);
 
-            // All tiles are standard (default)
-            // Set up standard chess pieces
-
-            // White pieces
-            board.PlacePiece(
-                new Rook(PlayerColor.White, new Vector2Int(0, 0)),
-                new Vector2Int(0, 0)
-            );
-            board.PlacePiece(
-                new Knight(PlayerColor.White, new Vector2Int(1, 0)),
-                new Vector2Int(1, 0)
-            );
-            board.PlacePiece(
-                new Bishop(PlayerColor.White, new Vector2Int(2, 0)),
-                new Vector2Int(2, 0)
-            );
-            board.PlacePiece(
-                new Queen(PlayerColor.White, new Vector2Int(3, 0)),
-                new Vector2Int(3, 0)
-            );
-            board.PlacePiece(
-                new King(PlayerColor.White, new Vector2Int(4, 0)),
-                new Vector2Int(4, 0)
-            );
-            board.PlacePiece(
-                new Bishop(PlayerColor.White, new Vector2Int(5, 0)),
-                new Vector2Int(5, 0)
-            );
-            board.PlacePiece(
-                new Knight(PlayerColor.White, new Vector2Int(6, 0)),
-                new Vector2Int(6, 0)
-            );
-            board.PlacePiece(
-                new Rook(PlayerColor.White, new Vector2Int(7, 0)),
-                new Vector2Int(7, 0)
-            );
-
-            for (int x = 0; x < 8; x++)
-            {
-                board.PlacePiece(
-                    new Pawn(PlayerColor.White, new Vector2Int(x, 1)),
-                    new Vector2Int(x, 1)
-                );
-            }
-
-            // Black pieces
-            board.PlacePiece(
-                new Rook(PlayerColor.Black, new Vector2Int(0, 7)),
-                new Vector2Int(0, 7)
-            );
-            board.PlacePiece(
-                new Knight(PlayerColor.Black, new Vector2Int(1, 7)),
-                new Vector2Int(1, 7)
-            );
-            board.PlacePiece(
-                new Bishop(PlayerColor.Black, new Vector2Int(2, 7)),
-                new Vector2Int(2, 7)
-            );
-            board.PlacePiece(
-                new Queen(PlayerColor.Black, new Vector2Int(3, 7)),
-                new Vector2Int(3, 7)
-            );
-            board.PlacePiece(
-                new King(PlayerColor.Black, new Vector2Int(4, 7)),
-                new Vector2Int(4, 7)
-            );
-            board.PlacePiece(
-                new Bishop(PlayerColor.Black, new Vector2Int(5, 7)),
-                new Vector2Int(5, 7)
-            );
-            board.PlacePiece(
-                new Knight(PlayerColor.Black, new Vector2Int(6, 7)),
-                new Vector2Int(6, 7)
-            );
-            board.PlacePiece(
-                new Rook(PlayerColor.Black, new Vector2Int(7, 7)),
-                new Vector2Int(7, 7)
-            );
-
-            for (int x = 0; x < 8; x++)
-            {
-                board.PlacePiece(
-                    new Pawn(PlayerColor.Black, new Vector2Int(x, 6)),
-                    new Vector2Int(x, 6)
-                );
-            }
+            // Place pieces using the placement init
+            var placementInit = GetPiecePlacementInit();
+            placementInit.PlacePieces(board, PlayerColor.White);
+            placementInit.PlacePieces(board, PlayerColor.Black);
 
             return board;
         }

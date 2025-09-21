@@ -1,6 +1,7 @@
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
 using RogueChess.Engine.RuleSets;
+using RogueChess.Engine.GameModes.PiecePlacementInit;
 
 namespace RogueChess.Engine.GameModes
 {
@@ -11,6 +12,11 @@ namespace RogueChess.Engine.GameModes
     {
         string Name { get; }
         string Description { get; }
+
+        /// <summary>
+        /// Get the piece placement configuration for this game mode
+        /// </summary>
+        RogueChess.Engine.GameModes.PiecePlacementInit.PiecePlacementInit GetPiecePlacementInit();
 
         /// <summary>
         /// Set up the initial board with pieces and tiles for this game mode
