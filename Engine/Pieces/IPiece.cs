@@ -48,4 +48,3 @@ namespace RogueChess.Engine.Interfaces
         IPiece Clone();
     }
 }
-

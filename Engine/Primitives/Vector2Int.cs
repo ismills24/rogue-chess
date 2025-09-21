@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 namespace RogueChess.Engine.Primitives
 {
     /// <summary>
@@ -35,6 +36,3 @@ namespace RogueChess.Engine.Primitives
         public override string ToString() => $"({X},{Y})";
     }
 }
-
-
-

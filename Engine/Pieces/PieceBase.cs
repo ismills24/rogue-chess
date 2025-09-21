@@ -76,6 +76,3 @@ namespace RogueChess.Engine.Pieces
         }
     }
 }
-
-
-

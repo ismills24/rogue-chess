@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using RogueChess.Engine.Board;
+using RogueChess.Engine.GameModes.PiecePlacementInit;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Pieces;
 using RogueChess.Engine.Pieces.Decorators;
 using RogueChess.Engine.Primitives;
 using RogueChess.Engine.RuleSets;
-using RogueChess.Engine.GameModes.PiecePlacementInit;
 
 namespace RogueChess.Engine.GameModes
 {
@@ -46,10 +46,5 @@ namespace RogueChess.Engine.GameModes
         {
             return new LastPieceStandingRuleSet();
         }
-
-
     }
 }
-
-
-
