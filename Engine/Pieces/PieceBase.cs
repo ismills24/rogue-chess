@@ -31,27 +31,6 @@ namespace RogueChess.Engine.Pieces
         // ---------------- Movement ----------------
         public abstract IEnumerable<Move> GetPseudoLegalMoves(GameState state);
 
-        // ---------------- Event hooks ----------------
-        public virtual IEnumerable<CandidateEvent> OnMove(Move move, GameState state)
-        {
-            yield break;
-        }
-
-        public virtual IEnumerable<CandidateEvent> OnCapture(GameState state)
-        {
-            yield break;
-        }
-
-        public virtual IEnumerable<CandidateEvent> OnTurnStart(GameState state)
-        {
-            yield break;
-        }
-
-        public virtual IEnumerable<CandidateEvent> OnTurnEnd(GameState state)
-        {
-            yield break;
-        }
-
         // ---------------- Value & Cloning ----------------
         public abstract int GetValue();
 

@@ -1,0 +1,174 @@
+📌 Current Model
+
+GameEventType is a flat enum (MoveApplied, MoveCancelled, PieceCaptured, PieceDestroyed, StatusTick, etc.).
+
+Hooks (IBeforeEventHook) can mutate or cancel candidate events in-flight.
+
+GameEngine runs a pipeline:
+
+Player move → candidate events.
+
+Hooks run → mutate/cancel/replace.
+
+Events committed to history (_history).
+
+Pieces, decorators, tiles all produce events directly (OnMove, OnCapture, OnEnter).
+
+Problems:
+
+Coupling of movement and capture → kludges like “move, capture, move back” for Marksman.
+
+Hooks mutate in opaque ways → debugging is hard.
+
+New mechanics often mean new GameEventTypes + new engine logic.
+
+Resolution order (e.g. Martyr vs Guardian) is not explicit.
+
+🎯 Target Model
+
+Uncouple PlayerAction from Events
+
+A turn = one ActionPackage.
+
+Package = ordered list of Events + a fallback policy (AbortChain | ContinueChain).
+
+Events are minimal + composable
+
+Examples: MoveEvent, CaptureEvent, DestroyEvent, StatusApplyEvent.
+
+No ambiguous types like MoveCancelled. Instead: interceptors cancel/replace.
+
+Status effects standardized: Applied, Triggered, Removed.
+
+Interceptors replace Hooks
+
+Implement IInterceptor<TEvent> with:
+
+int Priority (ordering).
+
+Intercept(Event e, GameState state) → EventPackage | null.
+
+No mutation. Only:
+
+Pass-through.
+
+Cancel.
+
+Replace with new package.
+
+Engine loop
+
+Get ActionPackage from controller.
+
+For each event in package, run interceptors (priority-ordered).
+
+Commit surviving/replacement events.
+
+EndTurn wrapper always appended.
+
+Advantages
+
+Clean building blocks for funky mechanics.
+
+Deterministic resolution (priority order).
+
+Debuggable: Event → Interceptor → Replacement.
+
+No need to touch GameEngine for new mechanics.
+
+🛠 Migration Steps
+1. Define new core interfaces
+
+IActionPackage
+
+public interface IActionPackage
+{
+    IReadOnlyList<GameEvent> Events { get; }
+    FallbackPolicy Fallback { get; }
+}
+public enum FallbackPolicy { AbortChain, ContinueChain }
+
+
+IInterceptor<TEvent>
+
+public interface IInterceptor<TEvent> where TEvent : GameEvent
+{
+    int Priority { get; }
+    IActionPackage? Intercept(TEvent ev, GameState state);
+}
+
+2. Update GameEvent
+
+Replace broad enum with small, composable event classes:
+
+MoveEvent
+
+CaptureEvent
+
+DestroyEvent
+
+StatusAppliedEvent
+
+StatusRemovedEvent
+
+TurnAdvancedEvent
+
+Each event = immutable record with payload.
+
+3. Replace Hooks with Interceptors
+
+Deprecate IBeforeEventHook.
+
+Build InterceptorRegistry:
+
+var interceptors = InterceptorCollector.GetFor(ev);
+foreach (var i in interceptors.OrderBy(i => i.Priority)) { … }
+
+4. Refactor GameEngine
+
+RunTurn():
+
+Get ActionPackage from controller.
+
+Expand into events.
+
+Pass each event through interceptors.
+
+Commit final stream to history.
+
+Always append EndTurn.
+
+Commit() simplified: no mutation, only commit final events.
+
+5. Retrofit Components
+
+Pieces: Instead of emitting both Move + Capture, they emit packages:
+
+Pawn move → [MoveEvent].
+
+Pawn capture → [CaptureEvent, MoveEvent].
+
+Decorators: Provide interceptors instead of hacking OnMove.
+
+Marksman: intercept CaptureEvent, cancel, replace with [DestroyEvent(target)].
+
+Martyr: intercept CaptureEvent on ally, cancel, replace with [DestroyEvent(martyr)].
+
+Tiles: Provide interceptors for MoveEvent or TurnStartEvent.
+
+📋 Next Steps
+
+Design concrete GameEvent subclasses (start with MoveEvent, CaptureEvent, DestroyEvent).
+
+Implement IActionPackage + FallbackPolicy.
+
+Implement IInterceptor<TEvent> and a registry.
+
+Update GameEngine to process packages instead of hooks.
+
+Retrofit 1–2 mechanics (Guardian, Martyr, Marksman) to validate the model.
+
+Expand to tiles and statuses.
+
+⚡ This migration shifts the model from imperative mutation → declarative interception & replacement.
+It’ll give you composability closer to a card-game engine (Hearthstone, Slay the Spire, etc.), which is exactly what you want for roguelike chess.

@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using RogueChess.Engine.Events;
-using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
 
 namespace RogueChess.Engine.Tiles
@@ -19,26 +14,6 @@ namespace RogueChess.Engine.Tiles
 
         protected BaseTile(Vector2Int position) => Position = position;
 
-        public virtual IEnumerable<CandidateEvent> OnEnter(
-            IPiece piece,
-            Vector2Int pos,
-            GameState state
-        )
-        {
-            yield break;
-        }
-
-        public virtual IEnumerable<CandidateEvent> OnTurnStart(
-            IPiece piece,
-            Vector2Int pos,
-            GameState state
-        )
-        {
-            yield break;
-        }
-
         public abstract ITile Clone();
     }
 }
-
-

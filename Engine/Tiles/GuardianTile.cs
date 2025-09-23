@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using RogueChess.Engine.Events;
-using RogueChess.Engine.Hooks;
-using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
 
 namespace RogueChess.Engine.Tiles
@@ -16,100 +11,64 @@ namespace RogueChess.Engine.Tiles
     ///   the tile is consumed, and the turn ends.
     /// After triggering once, the tile becomes a StandardTile.
     /// </summary>
-    public class GuardianTile : BaseTile, IBeforeEventHook
+    public class GuardianTile : BaseTile, IInterceptor<CaptureEvent>, IInterceptor<MoveEvent>
     {
         public GuardianTile()
             : base() { }
 
-        public GuardianTile(Vector2Int position)
-            : base(position) { }
+        public GuardianTile(Vector2Int pos)
+            : base(pos) { }
 
-        public override IEnumerable<CandidateEvent> OnEnter(
-            IPiece piece,
-            Vector2Int pos,
-            GameState state
-        )
+        public int Priority => 0;
+
+        public IEventSequence Intercept(CaptureEvent ev, GameState state)
         {
-            yield break;
+            if (ev.Target.Position != Position)
+                return new EventSequence(
+                    System.Array.Empty<GameEvent>(),
+                    FallbackPolicy.ContinueChain
+                );
+
+            var nextPlayer =
+                state.CurrentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White;
+            var nextTurn = state.TurnNumber + 1;
+
+            var consumeTile = new TileChangedEvent(Position, new StandardTile(Position), ev.Actor);
+            var endTurn = new TurnAdvancedEvent(nextPlayer, nextTurn);
+
+            // Replace capture entirely: tile is consumed, turn ends
+            return new EventSequence(
+                new GameEvent[] { consumeTile, endTurn },
+                FallbackPolicy.AbortChain
+            );
         }
 
-        public override IEnumerable<CandidateEvent> OnTurnStart(
-            IPiece piece,
-            Vector2Int pos,
-            GameState state
-        )
+        public IEventSequence Intercept(MoveEvent ev, GameState state)
         {
-            yield break;
-        }
+            if (ev.To != Position)
+                return new EventSequence(
+                    System.Array.Empty<GameEvent>(),
+                    FallbackPolicy.ContinueChain
+                );
 
-        public IEnumerable<CandidateEvent>? BeforeEvent(CandidateEvent candidate, GameState state)
-        {
-            // Protect occupant from being captured
-            if (
-                candidate.Type == GameEventType.PieceCaptured
-                && candidate.Payload is CapturePayload cap
-                && cap.Target.Position == Position
-            )
-            {
-                var nextPlayer =
-                    state.CurrentPlayer == PlayerColor.White
-                        ? PlayerColor.Black
-                        : PlayerColor.White;
-                var nextTurn = state.TurnNumber + 1;
+            var occupant = state.Board.GetPieceAt(Position);
+            if (occupant == null)
+                return new EventSequence(
+                    System.Array.Empty<GameEvent>(),
+                    FallbackPolicy.ContinueChain
+                );
 
-                return new[]
-                {
-                    // Consume the tile
-                    new CandidateEvent(
-                        GameEventType.TileEffectTriggered,
-                        false,
-                        new TileChangePayload(Position, new StandardTile(Position))
-                    ),
-                    // End the turn immediately (capture prevented)
-                    new CandidateEvent(
-                        GameEventType.TurnAdvanced,
-                        false,
-                        new TurnAdvancedPayload(nextPlayer, nextTurn)
-                    ),
-                };
-            }
+            var nextPlayer =
+                state.CurrentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White;
+            var nextTurn = state.TurnNumber + 1;
 
-            // Cancel moves landing onto this tile if it's occupied
-            if (
-                candidate.Type == GameEventType.MoveApplied
-                && candidate.Payload is MovePayload move
-                && move.To == Position
-            )
-            {
-                var occupant = state.Board.GetPieceAt(Position);
-                if (occupant != null)
-                {
-                    var nextPlayer =
-                        state.CurrentPlayer == PlayerColor.White
-                            ? PlayerColor.Black
-                            : PlayerColor.White;
-                    var nextTurn = state.TurnNumber + 1;
+            var consumeTile = new TileChangedEvent(Position, new StandardTile(Position), ev.Actor);
+            var endTurn = new TurnAdvancedEvent(nextPlayer, nextTurn);
 
-                    return new[]
-                    {
-                        // Consume the tile
-                        new CandidateEvent(
-                            GameEventType.TileEffectTriggered,
-                            false,
-                            new TileChangePayload(Position, new StandardTile(Position))
-                        ),
-                        // End the turn; move cancelled
-                        new CandidateEvent(
-                            GameEventType.TurnAdvanced,
-                            false,
-                            new TurnAdvancedPayload(nextPlayer, nextTurn)
-                        ),
-                    };
-                }
-            }
-
-            // Default: pass through unchanged
-            return new[] { candidate };
+            return new EventSequence(
+                new GameEvent[] { consumeTile, endTurn },
+                FallbackPolicy.AbortChain
+            );
         }
 
         public override ITile Clone() => new GuardianTile(Position);

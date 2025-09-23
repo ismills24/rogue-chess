@@ -3,15 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Interfaces;
-using RogueChess.Engine.Primitives;
 using RogueChess.Engine.StatusEffects;
 
 namespace RogueChess.Engine.Pieces.Decorators
 {
-    /// <summary>
-    /// Decorator that attaches status effects (Burning, Frozen, etc) to a piece.
-    /// </summary>
-    public class StatusEffectDecorator : PieceDecoratorBase
+    public class StatusEffectDecorator
+        : PieceDecoratorBase,
+            IInterceptor<TurnStartEvent>,
+            IInterceptor<TurnEndEvent>
     {
         private readonly List<IStatusEffect> _statuses;
 
@@ -29,28 +28,62 @@ namespace RogueChess.Engine.Pieces.Decorators
 
         public void AddStatus(IStatusEffect status) => _statuses.Add(status);
 
-        public IEnumerable<IStatusEffect> GetStatuses() => _statuses.AsReadOnly();
+        public bool HasAnyStatus => _statuses.Count > 0;
 
-        public override IEnumerable<CandidateEvent> OnTurnStart(GameState state)
+        public bool RemoveStatus(IStatusEffect status)
         {
-            foreach (var status in _statuses.ToList()) // copy in case of mutation
+            // Prefer reference equality if the same instance was carried
+            var idx = _statuses.FindIndex(s => ReferenceEquals(s, status));
+            if (idx >= 0)
             {
-                foreach (var ev in status.OnTurnStart(Inner, state))
-                    yield return ev;
+                _statuses.RemoveAt(idx);
+                return true;
             }
+
+            // Fallback: remove by name (handles cloned/serialized effects)
+            idx = _statuses.FindIndex(s =>
+                string.Equals(s.Name, status.Name, StringComparison.Ordinal)
+            );
+            if (idx >= 0)
+            {
+                _statuses.RemoveAt(idx);
+                return true;
+            }
+
+            return false;
         }
 
-        public override IEnumerable<CandidateEvent> OnTurnEnd(GameState state)
+        public IEnumerable<IStatusEffect> GetStatuses() => _statuses.AsReadOnly();
+
+        public int Priority => 0;
+
+        public IEventSequence Intercept(TurnStartEvent ev, GameState state)
         {
+            if (ev.Player != Inner.Owner)
+                return new EventSequence(Array.Empty<GameEvent>(), FallbackPolicy.ContinueChain);
+
+            var events = new List<GameEvent>();
             foreach (var status in _statuses.ToList())
-            foreach (var ev in status.OnTurnEnd(Inner, state))
-                yield return ev;
+                events.AddRange(status.OnTurnStart(Inner, state));
+
+            return new EventSequence(events, FallbackPolicy.ContinueChain);
+        }
+
+        public IEventSequence Intercept(TurnEndEvent ev, GameState state)
+        {
+            if (ev.Player != Inner.Owner)
+                return new EventSequence(Array.Empty<GameEvent>(), FallbackPolicy.ContinueChain);
+
+            var events = new List<GameEvent>();
+            foreach (var status in _statuses.ToList())
+                events.AddRange(status.OnTurnEnd(Inner, state));
+
+            return new EventSequence(events, FallbackPolicy.ContinueChain);
         }
 
         public override int GetValue()
         {
             var baseValue = Inner.GetValue();
-            // Simple example: penalize if piece has negative statuses
             var penalty = _statuses.Sum(s => s.ValueModifier());
             return baseValue + penalty;
         }
