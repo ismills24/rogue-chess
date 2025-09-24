@@ -190,26 +190,4 @@ namespace RogueChess.Engine.Events
             NewTile = newTile;
         }
     }
-
-    // in GameEvent.cs
-    public sealed class CommittedMoveEvent : GameEvent
-    {
-        public Vector2Int From { get; }
-        public Vector2Int To { get; }
-        public IPiece Piece { get; }
-
-        public CommittedMoveEvent(
-            Vector2Int from,
-            Vector2Int to,
-            IPiece piece,
-            PlayerColor actor,
-            bool isPlayerAction = false
-        )
-            : base(actor, isPlayerAction, $"{piece.Name} {from}→{to} (committed)", piece.ID)
-        {
-            From = from;
-            To = to;
-            Piece = piece;
-        }
-    }
 }
