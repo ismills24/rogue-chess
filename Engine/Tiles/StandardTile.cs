@@ -17,12 +17,7 @@ namespace RogueChess.Engine.Tiles
         public StandardTile(Vector2Int position)
             : base(position) { }
 
-        public override ITile Clone()
-        {
-            return new StandardTile(Position);
-        }
+        public StandardTile(BaseTile original)
+            : base(original) { }
     }
 }
-
-
-

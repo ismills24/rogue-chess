@@ -3,7 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using RogueChess.Engine.Events;
+using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Pieces.Decorators;
+using RogueChess.Engine.Tiles;
 
 namespace RogueChess.Engine
 {
@@ -25,39 +27,81 @@ namespace RogueChess.Engine
             while (stack.Count > 0)
             {
                 var ev = stack.Pop();
-                Console.WriteLine($"[Pipeline] Handling {ev.GetType().Name} ({ev.Description})");
+                Console.WriteLine(
+                    $"[Pipeline] Handling {ev.GetType().Name} ({ev.Description}) [EventId={ev.SourceID}]"
+                );
 
-                var handled = TryInterceptOnce(ev, out var replacement, CurrentState);
+                var (replacement, abort) = ProcessInterceptors(ev, CurrentState);
 
-                if (handled)
+                if (replacement != null)
                 {
                     Console.WriteLine(
-                        $"[Pipeline] Intercepted {ev.GetType().Name} -> {replacement.Events.Count} events, Fallback={replacement.Fallback}"
+                        $"[Pipeline] Interceptor(s) produced {replacement.Events.Count} event(s), Fallback={replacement.Fallback} [EventId={replacement.Events[0].SourceID}]"
                     );
-                    if (replacement.Events.Count == 0)
+
+                    if (abort)
                     {
-                        if (replacement.Fallback == FallbackPolicy.AbortChain)
-                        {
-                            Console.WriteLine("[Pipeline] Aborting sequence");
-                            return false;
-                        }
-                        Console.WriteLine("[Pipeline] Skipping event");
-                        continue;
+                        Console.WriteLine(
+                            "[Pipeline] AbortChain triggered → clearing remaining stack"
+                        );
+                        stack.Clear();
                     }
 
-                    // push replacements
+                    // Push any replacements (if given)
                     for (int i = replacement.Events.Count - 1; i >= 0; i--)
                         stack.Push(replacement.Events[i]);
 
-                    continue; // don't fall through
+                    continue;
                 }
 
+                // No interceptor touched this event → apply canonically
                 Console.WriteLine($"[Pipeline] Applying canonical {ev.GetType().Name}");
                 ApplyCanonical(ev, simulation);
             }
 
             Console.WriteLine("[Pipeline] Sequence completed");
             return true;
+        }
+
+        /// <summary>
+        /// Run all interceptors for a given event.
+        /// Returns a replacement sequence (or null if none) and a flag whether AbortChain was requested.
+        /// </summary>
+        private (IEventSequence replacement, bool abort) ProcessInterceptors(
+            GameEvent ev,
+            GameState state
+        )
+        {
+            var interceptors = InterceptorCollector.GetForEvent(ev, state);
+            Console.WriteLine(
+                $"[Pipeline] Found {interceptors.Count} interceptors for {ev.GetType().Name}"
+            );
+
+            foreach (var entry in interceptors)
+            {
+                string interceptorId =
+                    (entry.Instance as IPiece)?.ID.ToString()
+                    ?? (entry.Instance as ITile)?.ID.ToString()
+                    ?? "n/a";
+
+                Console.WriteLine(
+                    $"[Pipeline] Trying interceptor {entry.Instance.GetType().Name} (Priority={entry.Priority}) (ID={interceptorId})"
+                );
+                var seq = InterceptorCollector.InvokeIntercept(entry.Instance, ev, state);
+
+                // Abort: stop everything (with or without replacements)
+                if (seq.Fallback == FallbackPolicy.AbortChain)
+                    return (seq, true);
+
+                // Continue with replacements
+                if (seq.Events.Count > 0)
+                    return (seq, false);
+
+                // Continue + 0 events → skip this interceptor and try the next
+            }
+
+            // None altered the event
+            return (null, false);
         }
 
         /// <summary>

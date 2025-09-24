@@ -15,6 +15,9 @@ namespace RogueChess.Engine.Pieces
         public Knight(PlayerColor owner, Vector2Int position)
             : base("Knight", owner, position) { }
 
+        public Knight(Knight original)
+            : base(original) { }
+
         public override int GetValue() => 3;
 
         public override IEnumerable<Move> GetPseudoLegalMoves(GameState state)
@@ -32,7 +35,5 @@ namespace RogueChess.Engine.Pieces
                 new Vector2Int(-1, -2)
             );
         }
-
-        protected override IPiece CreateClone() => new Knight(Owner, Position);
     }
 }

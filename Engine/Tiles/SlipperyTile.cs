@@ -15,6 +15,9 @@ namespace RogueChess.Engine.Tiles
         public SlipperyTile(Vector2Int pos)
             : base(pos) { }
 
+        public SlipperyTile(BaseTile original)
+            : base(original) { }
+
         public int Priority => 0;
 
         public IEventSequence Intercept(MoveEvent ev, GameState state)
@@ -33,7 +36,5 @@ namespace RogueChess.Engine.Tiles
             var slide = new MoveEvent(ev.To, next, ev.Piece, ev.Actor, isPlayerAction: false);
             return new EventSequence(new GameEvent[] { slide }, FallbackPolicy.ContinueChain);
         }
-
-        public override ITile Clone() => new SlipperyTile(Position);
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Interfaces;
@@ -15,6 +16,12 @@ namespace RogueChess.Engine.Pieces.Decorators
 
         public MarksmanDecorator(IPiece inner)
             : base(inner) { }
+
+        public MarksmanDecorator(MarksmanDecorator original, IPiece innerClone)
+            : base(original, innerClone)
+        {
+            _rangedAttacksLeft = original._rangedAttacksLeft;
+        }
 
         private MarksmanDecorator(IPiece inner, int charges)
             : base(inner) => _rangedAttacksLeft = charges;
@@ -41,18 +48,27 @@ namespace RogueChess.Engine.Pieces.Decorators
 
         public IEventSequence Intercept(CaptureEvent ev, GameState state)
         {
-            if (_rangedAttacksLeft > 0 && ev.Attacker == Inner)
+            Console.WriteLine(
+                $"[Marksman] Intercepting CaptureEvent: Attacker={ev.Attacker.Name}, Inner={Inner.Name}, This={this.GetType().Name}, ShotsLeft={_rangedAttacksLeft}"
+            );
+
+            if (
+                _rangedAttacksLeft > 0
+                && (ReferenceEquals(ev.Attacker, this) || ReferenceEquals(ev.Attacker, Inner))
+            )
             {
+                Console.WriteLine("[Marksman] Condition matched → firing ranged shot!");
                 _rangedAttacksLeft--;
-                var destroy = new DestroyEvent(ev.Target, "Marksman ranged attack", ev.Actor);
+
+                var destroy = new DestroyEvent(ev.Target, "Marksman ranged attack", ev.Actor, ID);
                 return new EventSequence(new[] { destroy }, FallbackPolicy.AbortChain);
             }
 
-            // Let the original capture proceed untouched
-            return new EventSequence(System.Array.Empty<GameEvent>(), FallbackPolicy.ContinueChain);
+            Console.WriteLine("[Marksman] Condition not met → letting capture proceed normally");
+            return new EventSequence(Array.Empty<GameEvent>(), FallbackPolicy.ContinueChain);
         }
 
         protected override IPiece CreateDecoratorClone(IPiece inner) =>
-            new MarksmanDecorator(inner, _rangedAttacksLeft);
+            new MarksmanDecorator(inner);
     }
 }

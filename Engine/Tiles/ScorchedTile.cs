@@ -15,6 +15,9 @@ namespace RogueChess.Engine.Tiles
         public ScorchedTile(Vector2Int pos)
             : base(pos) { }
 
+        public ScorchedTile(BaseTile original)
+            : base(original) { }
+
         public int Priority => 0;
 
         // Apply burning when a piece moves onto this tile
@@ -51,7 +54,5 @@ namespace RogueChess.Engine.Tiles
             // Add burn but let the original TurnStartEvent fall through
             return new EventSequence(new[] { burn }, FallbackPolicy.ContinueChain);
         }
-
-        public override ITile Clone() => new ScorchedTile(Position);
     }
 }

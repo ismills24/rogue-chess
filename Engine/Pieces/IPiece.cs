@@ -1,7 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using RogueChess.Engine.Events;
 using RogueChess.Engine.Primitives;
 
 namespace RogueChess.Engine.Interfaces
@@ -17,6 +14,7 @@ namespace RogueChess.Engine.Interfaces
         Vector2Int Position { get; set; }
         int MovesMade { get; set; }
         int CapturesMade { get; set; }
+        System.Guid ID { get; }
 
         IEnumerable<Move> GetPseudoLegalMoves(GameState state);
 

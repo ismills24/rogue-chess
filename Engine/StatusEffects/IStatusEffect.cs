@@ -11,6 +11,7 @@ namespace RogueChess.Engine.StatusEffects
     public interface IStatusEffect
     {
         string Name { get; }
+        System.Guid ID { get; }
 
         /// <summary>
         /// Called at the start of the owning piece's turn.

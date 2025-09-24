@@ -20,6 +20,9 @@ namespace RogueChess.Engine.Pieces.Decorators
             _statuses = new List<IStatusEffect>();
         }
 
+        public StatusEffectDecorator(PieceDecoratorBase original, IPiece innerClone)
+            : base(original, innerClone) { }
+
         private StatusEffectDecorator(IPiece inner, List<IStatusEffect> statuses)
             : base(inner)
         {
@@ -88,10 +91,7 @@ namespace RogueChess.Engine.Pieces.Decorators
             return baseValue + penalty;
         }
 
-        protected override IPiece CreateDecoratorClone(IPiece inner)
-        {
-            var clonedStatuses = _statuses.Select(s => s.Clone()).ToList();
-            return new StatusEffectDecorator(inner, clonedStatuses);
-        }
+        protected override IPiece CreateDecoratorClone(IPiece inner) =>
+            new StatusEffectDecorator(inner);
     }
 }

@@ -13,16 +13,23 @@ namespace RogueChess.Engine.Events
     public abstract class GameEvent
     {
         public Guid Id { get; }
+        public Guid SourceID { get; }
         public PlayerColor Actor { get; }
         public bool IsPlayerAction { get; }
         public string Description { get; }
 
-        protected GameEvent(PlayerColor actor, bool isPlayerAction, string description)
+        protected GameEvent(
+            PlayerColor actor,
+            bool isPlayerAction,
+            string description,
+            Guid sourceId
+        )
         {
             Id = Guid.NewGuid();
             Actor = actor;
             IsPlayerAction = isPlayerAction;
             Description = description ?? string.Empty;
+            SourceID = sourceId;
         }
     }
 
@@ -39,7 +46,7 @@ namespace RogueChess.Engine.Events
             PlayerColor actor,
             bool isPlayerAction
         )
-            : base(actor, isPlayerAction, $"{piece.Name} moves {from} → {to}")
+            : base(actor, isPlayerAction, $"{piece.Name} moves {from} → {to}", piece.ID)
         {
             From = from;
             To = to;
@@ -53,7 +60,7 @@ namespace RogueChess.Engine.Events
         public IPiece Target { get; }
 
         public CaptureEvent(IPiece attacker, IPiece target, PlayerColor actor, bool isPlayerAction)
-            : base(actor, isPlayerAction, $"{attacker.Name} captures {target.Name}")
+            : base(actor, isPlayerAction, $"{attacker.Name} captures {target.Name}", attacker.ID)
         {
             Attacker = attacker;
             Target = target;
@@ -64,8 +71,8 @@ namespace RogueChess.Engine.Events
     {
         public IPiece Target { get; }
 
-        public DestroyEvent(IPiece target, string reason, PlayerColor actor)
-            : base(actor, false, $"Destroy {target.Name}: {reason}")
+        public DestroyEvent(IPiece target, string reason, PlayerColor actor, Guid sourceId)
+            : base(actor, false, $"Destroy {target.Name}: {reason}", sourceId)
         {
             Target = target;
         }
@@ -77,7 +84,7 @@ namespace RogueChess.Engine.Events
         public IStatusEffect Effect { get; }
 
         public StatusAppliedEvent(IPiece target, IStatusEffect effect, PlayerColor actor)
-            : base(actor, false, $"Applied {effect.Name} to {target.Name}")
+            : base(actor, false, $"Applied {effect.Name} to {target.Name}", effect.ID)
         {
             Target = target;
             Effect = effect;
@@ -89,8 +96,13 @@ namespace RogueChess.Engine.Events
         public IPiece Target { get; }
         public IStatusEffect Effect { get; }
 
-        public StatusRemovedEvent(IPiece target, IStatusEffect effect, PlayerColor actor)
-            : base(actor, false, $"Removed {effect.Name} from {target.Name}")
+        public StatusRemovedEvent(
+            IPiece target,
+            IStatusEffect effect,
+            PlayerColor actor,
+            Guid sourceId
+        )
+            : base(actor, false, $"Removed {effect.Name} from {target.Name}", sourceId)
         {
             Target = target;
             Effect = effect;
@@ -103,7 +115,7 @@ namespace RogueChess.Engine.Events
         public int TurnNumber { get; }
 
         public TurnAdvancedEvent(PlayerColor nextPlayer, int turnNumber)
-            : base(nextPlayer, false, $"Turn {turnNumber} → {nextPlayer}")
+            : base(nextPlayer, false, $"Turn {turnNumber} → {nextPlayer}", Guid.Empty)
         {
             NextPlayer = nextPlayer;
             TurnNumber = turnNumber;
@@ -116,7 +128,7 @@ namespace RogueChess.Engine.Events
         public int TurnNumber { get; }
 
         public TurnStartEvent(PlayerColor player, int turnNumber)
-            : base(player, false, $"Turn {turnNumber} start for {player}")
+            : base(player, false, $"Turn {turnNumber} start for {player}", Guid.Empty)
         {
             Player = player;
             TurnNumber = turnNumber;
@@ -129,7 +141,7 @@ namespace RogueChess.Engine.Events
         public int TurnNumber { get; }
 
         public TurnEndEvent(PlayerColor player, int turnNumber)
-            : base(player, false, $"Turn {turnNumber} end for {player}")
+            : base(player, false, $"Turn {turnNumber} end for {player}", Guid.Empty)
         {
             Player = player;
             TurnNumber = turnNumber;
@@ -148,7 +160,12 @@ namespace RogueChess.Engine.Events
             int remaining,
             PlayerColor actor
         )
-            : base(actor, false, $"{effect.Name} ticks on {target.Name} (remaining {remaining})")
+            : base(
+                actor,
+                false,
+                $"{effect.Name} ticks on {target.Name} (remaining {remaining})",
+                effect.ID
+            )
         {
             Target = target;
             Effect = effect;
@@ -162,7 +179,12 @@ namespace RogueChess.Engine.Events
         public ITile NewTile { get; }
 
         public TileChangedEvent(Vector2Int position, ITile newTile, PlayerColor actor)
-            : base(actor, false, $"Tile at {position} changed to {newTile.GetType().Name}")
+            : base(
+                actor,
+                false,
+                $"Tile at {position} changed to {newTile.GetType().Name}",
+                newTile.ID
+            )
         {
             Position = position;
             NewTile = newTile;
@@ -183,7 +205,7 @@ namespace RogueChess.Engine.Events
             PlayerColor actor,
             bool isPlayerAction = false
         )
-            : base(actor, isPlayerAction, $"{piece.Name} {from}→{to} (committed)")
+            : base(actor, isPlayerAction, $"{piece.Name} {from}→{to} (committed)", piece.ID)
         {
             From = from;
             To = to;

@@ -15,6 +15,9 @@ namespace RogueChess.Engine.Pieces
         public Rook(PlayerColor owner, Vector2Int position)
             : base("Rook", owner, position) { }
 
+        public Rook(Rook original)
+            : base(original) { }
+
         public override int GetValue() => 5;
 
         public override IEnumerable<Move> GetPseudoLegalMoves(GameState state)
@@ -28,10 +31,5 @@ namespace RogueChess.Engine.Pieces
                 new Vector2Int(0, -1)
             );
         }
-
-        protected override IPiece CreateClone() => new Rook(Owner, Position);
     }
 }
-
-
-

@@ -16,6 +16,9 @@ namespace RogueChess.Engine.Pieces.Decorators
         public MartyrDecorator(IPiece inner)
             : base(inner) { }
 
+        public MartyrDecorator(PieceDecoratorBase original, IPiece innerClone)
+            : base(original, innerClone) { }
+
         public int Priority => 0;
 
         public IEventSequence Intercept(CaptureEvent ev, GameState state)
@@ -23,12 +26,12 @@ namespace RogueChess.Engine.Pieces.Decorators
             var target = ev.Target;
             if (target.Owner == Inner.Owner && IsAdjacent(target.Position, Inner.Position))
             {
-                var martyrDies = new DestroyEvent(Inner, "Died protecting ally", ev.Actor);
+                var martyrDies = new DestroyEvent(Inner, "Died protecting ally", ev.Actor, ID);
                 return new EventSequence(new[] { martyrDies }, FallbackPolicy.AbortChain);
             }
 
             // Let capture proceed unchanged
-            return new EventSequence(Array.Empty<GameEvent>(), FallbackPolicy.ContinueChain);
+            return EventSequences.Continue;
         }
 
         private static bool IsAdjacent(Vector2Int a, Vector2Int b) =>

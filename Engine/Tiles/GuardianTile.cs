@@ -19,6 +19,9 @@ namespace RogueChess.Engine.Tiles
         public GuardianTile(Vector2Int pos)
             : base(pos) { }
 
+        public GuardianTile(BaseTile original)
+            : base(original) { }
+
         public int Priority => 0;
 
         public IEventSequence Intercept(CaptureEvent ev, GameState state)
@@ -70,7 +73,5 @@ namespace RogueChess.Engine.Tiles
                 FallbackPolicy.AbortChain
             );
         }
-
-        public override ITile Clone() => new GuardianTile(Position);
     }
 }

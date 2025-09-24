@@ -15,7 +15,10 @@ namespace RogueChess.Engine
         public static GameState SimulateTurn(GameState startingState, Move move, IRuleSet ruleset)
         {
             var dummy = new NullController();
-            var engine = new GameEngine(startingState, dummy, dummy, ruleset);
+
+            var clonedState = startingState.Clone();
+
+            var engine = new GameEngine(clonedState, dummy, dummy, ruleset);
 
             var pkg = engine.BuildMoveSequence(move, engine.CurrentState);
             var completed = engine.Dispatch(pkg, simulation: true);

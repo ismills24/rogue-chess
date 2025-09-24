@@ -13,13 +13,14 @@ namespace RogueChess.Engine.GameModes.PiecePlacementInit
     /// </summary>
     public class StandardChessPlacement : PiecePlacementInit
     {
-        public StandardChessPlacement() : base(8, 8) { }
+        public StandardChessPlacement()
+            : base(8, 8) { }
 
         public override IBoard PlacePieces(IBoard board, PlayerColor color)
         {
             // Generate pieces for the specified color
             var pieces = GenerateStandardPieces(color);
-            
+
             // Place pieces in traditional positions
             PlacePiecesForColor(board, pieces, color);
 
@@ -94,6 +95,3 @@ namespace RogueChess.Engine.GameModes.PiecePlacementInit
         }
     }
 }
-
-
-
