@@ -32,7 +32,14 @@ namespace RogueChess.Engine
             }
 
             events.Add(
-                new MoveEvent(move.From, move.To, mover, state.CurrentPlayer, isPlayerAction: true)
+                new MoveEvent(
+                    move.From,
+                    move.To,
+                    mover,
+                    state.CurrentPlayer,
+                    isPlayerAction: true,
+                    sourceId: System.Guid.Empty
+                )
             );
 
             return ActionPackages.Pack(events);

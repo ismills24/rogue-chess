@@ -44,9 +44,10 @@ namespace RogueChess.Engine.Events
             Vector2Int to,
             IPiece piece,
             PlayerColor actor,
-            bool isPlayerAction
+            bool isPlayerAction,
+            Guid sourceId
         )
-            : base(actor, isPlayerAction, $"{piece.Name} moves {from} → {to}", piece.ID)
+            : base(actor, isPlayerAction, $"{piece.Name} moves {from} → {to}", sourceId)
         {
             From = from;
             To = to;

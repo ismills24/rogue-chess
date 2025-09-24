@@ -22,19 +22,49 @@ namespace RogueChess.Engine.Tiles
 
         public IEventSequence Intercept(MoveEvent ev, GameState state)
         {
-            if (ev.To != Position)
-                return new EventSequence(Array.Empty<GameEvent>(), FallbackPolicy.ContinueChain);
+            // If this move was already emitted by us, ignore it to prevent recursion.
+            if (ev.SourceID == ID)
+                return EventSequences.Continue;
 
-            var dir = new Vector2Int(ev.To.X - ev.From.X, ev.To.Y - ev.From.Y);
+            // Only trigger when the piece lands on this tile.
+            if (ev.To != Position)
+                return EventSequences.Continue;
+
+            var dir = ev.To - ev.From;
             var step = new Vector2Int(Math.Sign(dir.X), Math.Sign(dir.Y));
             var next = ev.To + step;
 
             if (!state.Board.IsInBounds(next) || state.Board.GetPieceAt(next) != null)
-                return new EventSequence(Array.Empty<GameEvent>(), FallbackPolicy.ContinueChain);
+                return EventSequences.Continue;
 
-            // Only emit the extra slide move
-            var slide = new MoveEvent(ev.To, next, ev.Piece, ev.Actor, isPlayerAction: false);
-            return new EventSequence(new GameEvent[] { slide }, FallbackPolicy.ContinueChain);
+            Console.WriteLine($"[SlipperyTile] {ev.Piece.Name} slides {ev.To} → {next}");
+            Console.WriteLine($"[Incoming Move ID] {ev.SourceID} and my id is {ID}");
+
+            var slide = new MoveEvent(
+                ev.To,
+                next,
+                ev.Piece,
+                ev.Actor,
+                ev.IsPlayerAction,
+                sourceId: ID
+            );
+
+            // Create a new move event identical to the original but with our ID as source
+            // This prevents infinite recursion when the event gets processed again
+            var processedMove = new MoveEvent(
+                ev.From,
+                ev.To,
+                ev.Piece,
+                ev.Actor,
+                ev.IsPlayerAction,
+                sourceId: ID
+            );
+
+            // Emit both the processed move and the forced slide.
+            return new EventSequence(
+                new GameEvent[] { processedMove, slide },
+                FallbackPolicy.ContinueChain
+            );
         }
     }
 }
