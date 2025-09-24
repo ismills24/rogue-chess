@@ -74,6 +74,6 @@ namespace RogueChess.Engine.Pieces.Decorators
         }
 
         protected override IPiece CreateDecoratorClone(IPiece inner) =>
-            new MarksmanDecorator(inner);
+            new MarksmanDecorator(this, inner);
     }
 }

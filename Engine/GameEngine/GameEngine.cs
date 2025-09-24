@@ -83,49 +83,56 @@ namespace RogueChess.Engine
         /// </summary>
         public void UndoLastMove()
         {
-            // Find last event that was caused by a player action
-            var lastPlayerIndex = -1;
-            for (int i = _currentIndex; i >= 0; i--)
-            {
-                if (_history[i].Event.IsPlayerAction)
-                {
-                    lastPlayerIndex = i;
-                    break;
-                }
-            }
-            if (lastPlayerIndex <= 0)
+            if (_history.Count == 0)
                 return;
 
-            // Rewind to the TurnAdvanced BEFORE that action
-            int rewindTo = lastPlayerIndex - 1;
-            for (int i = lastPlayerIndex - 1; i >= 0; i--)
+            int seen = 0;
+            int rewindTo = -1;
+
+            // walk backwards from the current index
+            for (int i = _currentIndex; i >= 0; i--)
             {
                 if (_history[i].Event is TurnAdvancedEvent)
                 {
-                    rewindTo = i;
-                    break;
+                    seen++;
+                    if (seen == 3)
+                    {
+                        rewindTo = i;
+                        break;
+                    }
                 }
             }
-            _currentIndex = rewindTo;
+
+            if (rewindTo >= 0)
+                _currentIndex = rewindTo;
+            else
+                _currentIndex = -1; // nothing to undo
         }
 
-        /// <summary>
-        /// Redo forward to the next TurnAdvanced event after the current index.
-        /// </summary>
         public void RedoLastMove()
         {
+            if (_history.Count == 0)
+                return;
+
+            int seen = 0;
             int redoTo = -1;
+
+            // walk forwards from the current index
             for (int i = _currentIndex + 1; i < _history.Count; i++)
             {
                 if (_history[i].Event is TurnAdvancedEvent)
                 {
-                    redoTo = i;
-                    break;
+                    seen++;
+                    if (seen == 3)
+                    {
+                        redoTo = i;
+                        break;
+                    }
                 }
             }
-            if (redoTo == -1)
-                return;
-            _currentIndex = redoTo;
+
+            if (redoTo >= 0)
+                _currentIndex = redoTo;
         }
 
         /// <summary>
@@ -230,14 +237,6 @@ namespace RogueChess.Engine
                 case TileChangedEvent tce:
                 {
                     board.SetTile(tce.Position, tce.NewTile.Clone());
-                    break;
-                }
-
-                case CommittedMoveEvent m:
-                {
-                    var piece = board.GetPieceAt(m.From);
-                    if (piece != null)
-                        board.MovePiece(m.From, m.To);
                     break;
                 }
 
