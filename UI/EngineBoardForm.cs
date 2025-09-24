@@ -390,7 +390,7 @@ namespace RogueChess.UI
             // Check for decorators and status effects
             var hasExploding = HasDecorator(piece, typeof(ExplodingDecorator));
             var hasStatusEffect = HasDecorator(piece, typeof(StatusEffectDecorator));
-            var hasMartyr = HasDecorator(piece, typeof(MartyrDecorator));
+            var hasMartyr = HasDecorator(piece, typeof(ScapegoatDecorator));
             var hasMarksman = HasDecorator(piece, typeof(MarksmanDecorator));
 
             // Add visual indicators

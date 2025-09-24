@@ -15,17 +15,13 @@ namespace RogueChess.Engine.Primitives
         public Vector2Int To { get; }
         public IPiece Piece { get; }
         public bool IsCapture { get; }
-        public bool IsPromotion { get; }
 
-        public Move(Vector2Int from, Vector2Int to, IPiece piece, bool isCapture = false, bool isPromotion = false)
+        public Move(Vector2Int from, Vector2Int to, IPiece piece, bool isCapture = false)
         {
             From = from;
             To = to;
             Piece = piece;
             IsCapture = isCapture;
-            IsPromotion = isPromotion;
         }
     }
 }
-
-

@@ -11,12 +11,12 @@ namespace RogueChess.Engine.Pieces.Decorators
     /// The attacking move is canceled; the martyr dies, ally survives,
     /// and the attacker remains on its original square.
     /// </summary>
-    public class MartyrDecorator : PieceDecoratorBase, IInterceptor<CaptureEvent>
+    public class ScapegoatDecorator : PieceDecoratorBase, IInterceptor<CaptureEvent>
     {
-        public MartyrDecorator(IPiece inner)
+        public ScapegoatDecorator(IPiece inner)
             : base(inner) { }
 
-        public MartyrDecorator(PieceDecoratorBase original, IPiece innerClone)
+        public ScapegoatDecorator(PieceDecoratorBase original, IPiece innerClone)
             : base(original, innerClone) { }
 
         public int Priority => 0;
@@ -37,6 +37,6 @@ namespace RogueChess.Engine.Pieces.Decorators
         private static bool IsAdjacent(Vector2Int a, Vector2Int b) =>
             Math.Abs(a.X - b.X) <= 1 && Math.Abs(a.Y - b.Y) <= 1 && !(a.X == b.X && a.Y == b.Y);
 
-        protected override IPiece CreateDecoratorClone(IPiece inner) => new MartyrDecorator(inner);
+        protected override IPiece CreateDecoratorClone(IPiece inner) => new ScapegoatDecorator(inner);
     }
 }

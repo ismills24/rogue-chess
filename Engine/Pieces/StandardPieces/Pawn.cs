@@ -11,7 +11,7 @@ namespace RogueChess.Engine.Pieces
     /// Standard chess pawn piece.
     /// Handles single/double forward moves and diagonal captures.
     /// </summary>
-    public class Pawn : PieceBase
+    public class Pawn : PieceBase, IInterceptor<MoveEvent>
     {
         public Pawn(PlayerColor owner, Vector2Int position)
             : base("Pawn", owner, position) { }
@@ -63,6 +63,31 @@ namespace RogueChess.Engine.Pieces
             }
 
             return moves;
+        }
+
+        public int Priority => 0;
+
+        public IEventSequence Intercept(MoveEvent ev, GameState state)
+        {
+            Console.WriteLine($"Intercepting MoveEvent: {ev.Piece.ID} {this.ID}");
+            // Only intercept if this pawn is the mover and it's reached the last rank
+            if (ev.Piece.ID != this.ID)
+                return EventSequences.Continue;
+            Console.WriteLine($"Intercepting MoveEvent: {ev.Piece.Name} moves {ev.From} → {ev.To}");
+            int lastRank = Owner == PlayerColor.White ? state.Board.Height - 1 : 0;
+            if (ev.To.Y != lastRank)
+                return EventSequences.Continue;
+
+            return EventSequences.Single(
+                new PieceChangedEvent(
+                    this,
+                    new Queen(Owner, ev.To),
+                    ev.To,
+                    ev.Actor,
+                    isPlayerAction: ev.IsPlayerAction,
+                    sourceId: ID
+                )
+            );
         }
     }
 }

@@ -190,4 +190,31 @@ namespace RogueChess.Engine.Events
             NewTile = newTile;
         }
     }
+
+    public class PieceChangedEvent : GameEvent
+    {
+        public IPiece OldPiece { get; }
+        public IPiece NewPiece { get; }
+        public Vector2Int Position { get; }
+
+        public PieceChangedEvent(
+            IPiece oldPiece,
+            IPiece newPiece,
+            Vector2Int position,
+            PlayerColor actor,
+            Guid sourceId,
+            bool isPlayerAction = false
+        )
+            : base(
+                actor,
+                isPlayerAction,
+                $"Transform {oldPiece.Name} → {newPiece.Name} at {position}",
+                sourceId
+            )
+        {
+            OldPiece = oldPiece;
+            NewPiece = newPiece;
+            Position = position;
+        }
+    }
 }

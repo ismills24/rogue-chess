@@ -35,9 +35,6 @@ namespace RogueChess.Engine
                 new MoveEvent(move.From, move.To, mover, state.CurrentPlayer, isPlayerAction: true)
             );
 
-            // Pawn promotion is intentionally delegated to an interceptor:
-            // e.g. IInterceptor<MoveEvent> that detects rank and replaces with promotion package.
-
             return ActionPackages.Pack(events);
         }
     }

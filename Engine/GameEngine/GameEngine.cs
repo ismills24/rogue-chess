@@ -240,6 +240,13 @@ namespace RogueChess.Engine
                     break;
                 }
 
+                case PieceChangedEvent pce:
+                {
+                    board.RemovePiece(pce.OldPiece.Position);
+                    board.PlacePiece(pce.NewPiece, pce.Position);
+                    break;
+                }
+
                 case TurnStartEvent _:
                     // no board change
                     break;
