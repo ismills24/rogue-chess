@@ -16,6 +16,9 @@ namespace RogueChess.Engine.Pieces
         public Pawn(PlayerColor owner, Vector2Int position)
             : base("Pawn", owner, position) { }
 
+        public Pawn(Pawn original)
+            : base(original) { }
+
         public override int GetValue() => 1;
 
         public override IEnumerable<Move> GetPseudoLegalMoves(GameState state)
@@ -61,7 +64,5 @@ namespace RogueChess.Engine.Pieces
 
             return moves;
         }
-
-        protected override IPiece CreateClone() => new Pawn(Owner, Position);
     }
 }

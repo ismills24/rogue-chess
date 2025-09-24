@@ -39,6 +39,17 @@ namespace RogueChess.Engine.GameModes
             placementInit.PlacePieces(board, PlayerColor.White);
             placementInit.PlacePieces(board, PlayerColor.Black);
 
+            // Decorate all pieces as Marksmen
+            foreach (var tile in board.GetAllTiles())
+            {
+                var piece = board.GetPieceAt(tile.Position);
+                if (piece != null)
+                {
+                    board.RemovePiece(tile.Position);
+                    board.PlacePiece(new MarksmanDecorator(piece), tile.Position);
+                }
+            }
+
             return board;
         }
 

@@ -19,7 +19,8 @@ namespace RogueChess.Engine.GameModes.PiecePlacementInit
         private int _boardWidth;
         private int _boardHeight;
 
-        public RandomChessPlacement() : base(0, 0) 
+        public RandomChessPlacement()
+            : base(0, 0)
         {
             // Random board size between 4x4 and 8x8
             _boardWidth = _random.Next(4, 9); // 4 to 8
@@ -32,7 +33,7 @@ namespace RogueChess.Engine.GameModes.PiecePlacementInit
         {
             // Generate random pieces for the specified color
             var pieces = GenerateRandomPieces(color);
-            
+
             // Place pieces randomly
             PlaceRandomPiecesForColor(board, pieces, color);
 
@@ -50,7 +51,7 @@ namespace RogueChess.Engine.GameModes.PiecePlacementInit
                 typeof(Bishop),
                 typeof(Queen),
             };
-            var decoratorTypes = new Type[] { typeof(ExplodingDecorator), typeof(MartyrDecorator) };
+            var decoratorTypes = new Type[] { typeof(ExplodingDecorator)};
 
             // Calculate how many pieces to place (max 50% of board, but at least 2 per side)
             var totalSquares = BoardWidth * BoardHeight;
@@ -69,47 +70,16 @@ namespace RogueChess.Engine.GameModes.PiecePlacementInit
                 {
                     // Random piece type for other pieces
                     var pieceType = pieceTypes[_random.Next(pieceTypes.Length)];
-                    piece = (IPiece)Activator.CreateInstance(pieceType, color, new Vector2Int(0, 0))!;
+                    piece = (IPiece)
+                        Activator.CreateInstance(pieceType, color, new Vector2Int(0, 0))!;
                 }
 
                 // Add random decorators
-                piece = AddRandomDecorators(piece, decoratorTypes);
+                piece = new ExplodingDecorator(piece);
                 pieces.Add(piece);
             }
 
             return pieces;
-        }
-
-        private IPiece AddRandomDecorators(IPiece piece, Type[] decoratorTypes)
-        {
-            // Randomly add a status effect (30% chance)
-            if (_random.NextDouble() < 0.3)
-            {
-                var effects = new IStatusEffect[]
-                {
-                    new BurningStatus(),
-                    // add more when you implement them, e.g. new PoisonedStatus()
-                };
-                var effect = effects[_random.Next(effects.Length)];
-
-                var statusDecorator = new StatusEffectDecorator(piece);
-                statusDecorator.AddStatus(effect);
-                piece = statusDecorator;
-            }
-
-            // Randomly add Exploding (30%)
-            if (_random.NextDouble() < 0.3)
-            {
-                piece = new ExplodingDecorator(piece);
-            }
-
-            // Randomly add Martyr (30%)
-            if (_random.NextDouble() < 0.3)
-            {
-                piece = new MartyrDecorator(piece);
-            }
-
-            return piece;
         }
 
         private void PlaceRandomPiecesForColor(IBoard board, List<IPiece> pieces, PlayerColor color)
@@ -141,6 +111,3 @@ namespace RogueChess.Engine.GameModes.PiecePlacementInit
         }
     }
 }
-
-
-

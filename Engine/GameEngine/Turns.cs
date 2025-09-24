@@ -1,6 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+// Engine/GameEngine/Turns.cs
 using RogueChess.Engine.Controllers;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Primitives;
@@ -10,83 +8,56 @@ namespace RogueChess.Engine
     public partial class GameEngine
     {
         /// <summary>
-        /// Run one complete turn: TurnStart → Select/Process Move → TurnEnd → Advance Turn.
+        /// One complete turn with the new pipeline:
+        /// 1) ask controller for a move
+        /// 2) dispatch the move package (interceptors may replace/expand)
+        /// 3) append TurnAdvancedEvent
+        ///
+        /// Turn-start/end effects should be implemented as interceptors (e.g. on MoveEvent
+        /// or on a custom TurnStart/TurnEnd event type you may add later).
         /// </summary>
         public void RunTurn()
         {
             if (IsGameOver())
                 return;
 
-            // Turn-start effects for CURRENT player
-            foreach (var candidateEvent in TickTurnStart(CurrentState))
-                Commit(candidateEvent);
-
-            // Get move from CURRENT player
             var controller =
                 CurrentState.CurrentPlayer == PlayerColor.White
                     ? _whiteController
                     : _blackController;
+            Dispatch(
+                ActionPackages.Single(
+                    new TurnStartEvent(CurrentState.CurrentPlayer, CurrentState.TurnNumber)
+                ),
+                simulation: false
+            );
 
             var move = controller.SelectMove(CurrentState);
             if (move == null)
-                return; // no move chosen (e.g., human waiting)
+                return;
 
-            // Process the move (no advancing here)
-            ProcessMove(move, CurrentState, simulation: false);
+            // Build and dispatch the move package
+            var pkg = BuildMoveSequence(move, CurrentState);
+            var completed = Dispatch(pkg, simulation: false);
+            // If an interceptor aborted the chain (e.g., illegal/cancelled), stop here.
+            if (!completed)
+                return;
 
-            // End-of-turn effects for the SAME player
-            foreach (var ev in TickTurnEnd(CurrentState))
-                Commit(ev);
+            Dispatch(
+                ActionPackages.Single(
+                    new TurnEndEvent(CurrentState.CurrentPlayer, CurrentState.TurnNumber)
+                ),
+                simulation: false
+            );
 
             // Advance the turn
-            var afterEnd = CurrentState;
+            var after = CurrentState;
             var nextPlayer =
-                afterEnd.CurrentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White;
-
-            var advance = new CandidateEvent(
-                GameEventType.TurnAdvanced,
-                false,
-                new TurnAdvancedPayload(nextPlayer, afterEnd.TurnNumber + 1)
+                after.CurrentPlayer == PlayerColor.White ? PlayerColor.Black : PlayerColor.White;
+            var advance = ActionPackages.Single(
+                new TurnAdvancedEvent(nextPlayer, after.TurnNumber + 1)
             );
-            Commit(advance);
-        }
-
-        /// <summary>
-        /// Tick turn-start effects for all pieces and tiles of the current player.
-        /// </summary>
-        private IEnumerable<CandidateEvent> TickTurnStart(GameState state)
-        {
-            var currentPlayer = state.CurrentPlayer;
-
-            // Tiles tick
-            foreach (var piece in state.Board.GetAllPieces(currentPlayer))
-            {
-                var tile = state.Board.GetTile(piece.Position);
-                foreach (var ev in tile.OnTurnStart(piece, piece.Position, state))
-                    yield return ev;
-            }
-
-            // Pieces tick
-            foreach (var piece in state.Board.GetAllPieces(currentPlayer))
-            {
-                foreach (var ev in piece.OnTurnStart(state))
-                    yield return ev;
-            }
-        }
-
-        /// <summary>
-        /// Tick end-of-turn effects for all pieces of the current player.
-        /// </summary>
-        private IEnumerable<CandidateEvent> TickTurnEnd(GameState state)
-        {
-            foreach (var piece in state.Board.GetAllPieces(state.CurrentPlayer))
-            {
-                foreach (var ev in piece.OnTurnEnd(state))
-                    yield return ev;
-            }
+            Dispatch(advance, simulation: false);
         }
     }
 }
-
-
-

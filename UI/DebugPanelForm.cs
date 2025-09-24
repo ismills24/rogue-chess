@@ -1,7 +1,3 @@
-using System;
-using System.Drawing;
-using System.Linq;
-using System.Windows.Forms;
 using RogueChess.Engine;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Pieces;
@@ -186,28 +182,39 @@ namespace RogueChess.UI
         {
             var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
             var playerAction = gameEvent.IsPlayerAction ? "Player" : "System";
-            var type = gameEvent.Type.ToString();
-            var payload = FormatPayload(gameEvent.Payload);
+            var type = gameEvent.GetType().Name; // class name instead of enum
+            var details = FormatDetails(gameEvent);
 
-            // Cleaner: no GUID in the list
-            return $"{timestamp} | {playerAction} | {type} | {payload}";
+            return $"{timestamp} | {playerAction} | {type} | {details}";
         }
 
-        private string FormatPayload(object? payload)
+        private string FormatDetails(GameEvent ev)
         {
-            if (payload == null)
-                return "null";
-
-            return payload switch
+            switch (ev)
             {
-                MovePayload mv => $"Move: {mv.Piece.Name} {mv.From}→{mv.To}",
-                CapturePayload cap => $"Capture: {cap.Target.Name} at {cap.Target.Position}",
-                TileChangePayload tile => $"Tile {tile.Position} → {tile.NewTile.GetType().Name}",
-                StatusApplyPayload status =>
-                    $"Status {status.Effect.GetType().Name} on {status.Target.Name}",
-                ForcedSlidePayload slide => $"Slide {slide.Piece.Name} {slide.From}→{slide.To}",
-                _ => payload.ToString() ?? "Unknown",
-            };
+                case MoveEvent mv:
+                    return $"Move: {mv.Piece.Name} {mv.From}→{mv.To}";
+                case CaptureEvent cap:
+                    return $"Capture: {cap.Target.Name} at {cap.Target.Position}";
+                case DestroyEvent des:
+                    return $"Destroy: {des.Target.Name} at {des.Target.Position}";
+                case TileChangedEvent tile:
+                    return $"Tile {tile.Position} → {tile.NewTile.GetType().Name}";
+                case StatusAppliedEvent status:
+                    return $"Status +{status.Effect.Name} on {status.Target.Name}";
+                case StatusRemovedEvent statusR:
+                    return $"Status -{statusR.Effect.Name} from {statusR.Target.Name}";
+                case StatusTickEvent tick:
+                    return $"Status {tick.Effect.Name} ticks on {tick.Target.Name} (remaining {tick.RemainingDuration})";
+                case TurnStartEvent ts:
+                    return $"Turn {ts.TurnNumber} start for {ts.Player}";
+                case TurnEndEvent te:
+                    return $"Turn {te.TurnNumber} end for {te.Player}";
+                case TurnAdvancedEvent adv:
+                    return $"Advance to {adv.NextPlayer}, Turn {adv.TurnNumber}";
+                default:
+                    return ev.Description ?? "Unknown";
+            }
         }
 
         private void UpdatePieceValues(GameState state)

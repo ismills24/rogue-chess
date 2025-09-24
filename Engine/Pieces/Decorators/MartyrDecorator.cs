@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using RogueChess.Engine.Events;
-using RogueChess.Engine.Hooks;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
 
@@ -13,51 +11,31 @@ namespace RogueChess.Engine.Pieces.Decorators
     /// The attacking move is canceled; the martyr dies, ally survives,
     /// and the attacker remains on its original square.
     /// </summary>
-    public class MartyrDecorator : PieceDecoratorBase, IBeforeEventHook
+    public class MartyrDecorator : PieceDecoratorBase, IInterceptor<CaptureEvent>
     {
         public MartyrDecorator(IPiece inner)
             : base(inner) { }
 
-        public IEnumerable<CandidateEvent>? BeforeEvent(CandidateEvent candidate, GameState state)
+        public MartyrDecorator(PieceDecoratorBase original, IPiece innerClone)
+            : base(original, innerClone) { }
+
+        public int Priority => 0;
+
+        public IEventSequence Intercept(CaptureEvent ev, GameState state)
         {
-            // --- intercept captures targeting adjacent allies ---
-            if (
-                candidate.Type == GameEventType.PieceCaptured
-                && candidate.Payload is CapturePayload capturePayload
-            )
+            var target = ev.Target;
+            if (target.Owner == Inner.Owner && IsAdjacent(target.Position, Inner.Position))
             {
-                var target = capturePayload.Target;
-                if (target.Owner == Inner.Owner && IsAdjacent(target.Position, Inner.Position))
-                {
-                    // martyr dies instead of ally, and attacker’s move is cancelled
-                    return new[]
-                    {
-                        // Martyr dies
-                        new CandidateEvent(
-                            GameEventType.PieceDestroyed,
-                            false,
-                            new PieceDestroyedPayload(Inner, "Died protecting an ally")
-                        ),
-                        // Ally is teleported to martyr’s old square
-                        new CandidateEvent(
-                            GameEventType.MoveApplied,
-                            false,
-                            new MovePayload(target, target.Position, Inner.Position)
-                        ),
-                    };
-                }
+                var martyrDies = new DestroyEvent(Inner, "Died protecting ally", ev.Actor, ID);
+                return new EventSequence(new[] { martyrDies }, FallbackPolicy.AbortChain);
             }
 
-            // Otherwise leave unchanged
-            return new[] { candidate };
+            // Let capture proceed unchanged
+            return EventSequences.Continue;
         }
 
-        private static bool IsAdjacent(Vector2Int a, Vector2Int b)
-        {
-            var dx = Math.Abs(a.X - b.X);
-            var dy = Math.Abs(a.Y - b.Y);
-            return dx <= 1 && dy <= 1 && (dx + dy) > 0;
-        }
+        private static bool IsAdjacent(Vector2Int a, Vector2Int b) =>
+            Math.Abs(a.X - b.X) <= 1 && Math.Abs(a.Y - b.Y) <= 1 && !(a.X == b.X && a.Y == b.Y);
 
         protected override IPiece CreateDecoratorClone(IPiece inner) => new MartyrDecorator(inner);
     }

@@ -1,10 +1,7 @@
-// File: Engine/StatusEffects/BurningStatus.cs
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.Interfaces;
-using RogueChess.Engine.Primitives;
 
 namespace RogueChess.Engine.StatusEffects
 {
@@ -15,31 +12,22 @@ namespace RogueChess.Engine.StatusEffects
 
         public BurningStatus() { }
 
+        public BurningStatus(BurningStatus original)
+            : base(original) => Duration = original.Duration;
+
         private BurningStatus(int duration) => Duration = duration;
 
-        public override IEnumerable<CandidateEvent> OnTurnEnd(IPiece piece, GameState state)
+        public override IEnumerable<GameEvent> OnTurnEnd(IPiece piece, GameState state)
         {
             Duration--;
 
-            yield return new CandidateEvent(
-                GameEventType.StatusTick,
-                false,
-                new StatusTickPayload(piece, Name, Duration)
-            );
+            // Optional telemetry event for UI:
+            yield return new StatusTickEvent(piece, this, Duration, piece.Owner);
 
             if (Duration <= 0)
-            {
-                yield return new CandidateEvent(
-                    GameEventType.PieceDestroyed,
-                    false,
-                    new PieceDestroyedPayload(piece, "Burned to ashes!")
-                );
-            }
+                yield return new DestroyEvent(piece, "Burned to ashes!", piece.Owner, ID);
         }
 
         public override int ValueModifier() => -1 * Math.Max(0, Duration);
-
-        public override IStatusEffect Clone() => new BurningStatus(Duration);
     }
 }
-

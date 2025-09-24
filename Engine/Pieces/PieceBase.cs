@@ -13,6 +13,7 @@ namespace RogueChess.Engine.Pieces
     /// </summary>
     public abstract class PieceBase : IPiece
     {
+        public Guid ID { get; }
         public string Name { get; }
         public PlayerColor Owner { get; }
         public Vector2Int Position { get; set; }
@@ -21,6 +22,7 @@ namespace RogueChess.Engine.Pieces
 
         protected PieceBase(string name, PlayerColor owner, Vector2Int position)
         {
+            ID = Guid.NewGuid();
             Name = name;
             Owner = owner;
             Position = position;
@@ -28,39 +30,26 @@ namespace RogueChess.Engine.Pieces
             CapturesMade = 0;
         }
 
+        protected PieceBase(PieceBase original)
+        {
+            ID = original.ID;
+            Name = original.Name;
+            Owner = original.Owner;
+            Position = original.Position;
+            MovesMade = original.MovesMade;
+            CapturesMade = original.CapturesMade;
+        }
+
         // ---------------- Movement ----------------
         public abstract IEnumerable<Move> GetPseudoLegalMoves(GameState state);
-
-        // ---------------- Event hooks ----------------
-        public virtual IEnumerable<CandidateEvent> OnMove(Move move, GameState state)
-        {
-            yield break;
-        }
-
-        public virtual IEnumerable<CandidateEvent> OnCapture(GameState state)
-        {
-            yield break;
-        }
-
-        public virtual IEnumerable<CandidateEvent> OnTurnStart(GameState state)
-        {
-            yield break;
-        }
-
-        public virtual IEnumerable<CandidateEvent> OnTurnEnd(GameState state)
-        {
-            yield break;
-        }
 
         // ---------------- Value & Cloning ----------------
         public abstract int GetValue();
 
-        public IPiece Clone() => CreateClone();
-
-        /// <summary>
-        /// Concrete pieces must implement cloning.
-        /// </summary>
-        protected abstract IPiece CreateClone();
+        public virtual IPiece Clone()
+        {
+            return (IPiece)MemberwiseClone();
+        }
 
         public override string ToString() => $"{Name} ({Owner}) at {Position}";
 

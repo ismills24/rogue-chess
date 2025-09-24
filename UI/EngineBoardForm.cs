@@ -1,16 +1,8 @@
-using System;
-using System.Drawing;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using RogueChess.Engine;
-using RogueChess.Engine.Board;
 using RogueChess.Engine.Controllers;
 using RogueChess.Engine.Events;
 using RogueChess.Engine.GameModes;
 using RogueChess.Engine.Interfaces;
-using RogueChess.Engine.Pieces;
 using RogueChess.Engine.Pieces.Decorators;
 using RogueChess.Engine.Primitives;
 using RogueChess.Engine.RuleSets;
@@ -525,8 +517,10 @@ namespace RogueChess.UI
         private bool HasUsedRangedAttack(MarksmanDecorator marksmanDecorator)
         {
             // Use reflection to check if charges are available
-            var field = typeof(MarksmanDecorator).GetField("_rangedAttacksLeft", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var field = typeof(MarksmanDecorator).GetField(
+                "_rangedAttacksLeft",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
             var chargesLeft = field?.GetValue(marksmanDecorator) as int? ?? 0;
             return chargesLeft <= 0;
         }
@@ -534,8 +528,10 @@ namespace RogueChess.UI
         private int GetRangedAttacksLeft(MarksmanDecorator marksmanDecorator)
         {
             // Use reflection to get the number of charges left
-            var field = typeof(MarksmanDecorator).GetField("_rangedAttacksLeft", 
-                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var field = typeof(MarksmanDecorator).GetField(
+                "_rangedAttacksLeft",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance
+            );
             return field?.GetValue(marksmanDecorator) as int? ?? 0;
         }
 
@@ -726,10 +722,10 @@ namespace RogueChess.UI
             _debugPanel?.AddEvent(gameEvent, _gameEngine.CurrentState);
 
             // Update last move highlighting for player actions
-            if (gameEvent.IsPlayerAction && gameEvent.Payload is MovePayload movePayload)
+            if (gameEvent.IsPlayerAction && gameEvent is MoveEvent moveEvent)
             {
-                _lastMoveFrom = movePayload.From;
-                _lastMoveTo = movePayload.To;
+                _lastMoveFrom = moveEvent.From;
+                _lastMoveTo = moveEvent.To;
             }
         }
 
