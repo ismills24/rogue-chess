@@ -37,13 +37,9 @@ namespace RogueChess.Engine.Tiles
             var nextTurn = state.TurnNumber + 1;
 
             var consumeTile = new TileChangedEvent(Position, new StandardTile(Position), ev.Actor);
-            var endTurn = new TurnAdvancedEvent(nextPlayer, nextTurn);
 
             // Replace capture entirely: tile is consumed, turn ends
-            return new EventSequence(
-                new GameEvent[] { consumeTile, endTurn },
-                FallbackPolicy.AbortChain
-            );
+            return new EventSequence(new GameEvent[] { consumeTile }, FallbackPolicy.AbortChain);
         }
 
         public IEventSequence Intercept(MoveEvent ev, GameState state)
@@ -66,12 +62,8 @@ namespace RogueChess.Engine.Tiles
             var nextTurn = state.TurnNumber + 1;
 
             var consumeTile = new TileChangedEvent(Position, new StandardTile(Position), ev.Actor);
-            var endTurn = new TurnAdvancedEvent(nextPlayer, nextTurn);
 
-            return new EventSequence(
-                new GameEvent[] { consumeTile, endTurn },
-                FallbackPolicy.AbortChain
-            );
+            return new EventSequence(new GameEvent[] { consumeTile }, FallbackPolicy.AbortChain);
         }
     }
 }
