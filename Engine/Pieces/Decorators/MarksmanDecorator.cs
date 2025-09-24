@@ -46,6 +46,10 @@ namespace RogueChess.Engine.Pieces.Decorators
 
         public int Priority => 0;
 
+        /// <summary>
+        /// Intercepts the capture event and destroys the target if the marksman has charges left.
+        /// This causes the initial EventSequence to be aborted and the movement sequence to be skipped.
+        /// </summary>
         public IEventSequence Intercept(CaptureEvent ev, GameState state)
         {
             Console.WriteLine(
@@ -60,9 +64,13 @@ namespace RogueChess.Engine.Pieces.Decorators
                 var destroy = new DestroyEvent(ev.Target, "Marksman ranged attack", ev.Actor, ID);
                 return new EventSequence(new[] { destroy }, FallbackPolicy.AbortChain);
             }
-
-            Console.WriteLine("[Marksman] Condition not met → letting capture proceed normally");
-            return new EventSequence(Array.Empty<GameEvent>(), FallbackPolicy.ContinueChain);
+            else
+            {
+                Console.WriteLine(
+                    "[Marksman] Condition not met → letting capture proceed normally"
+                );
+                return new EventSequence(Array.Empty<GameEvent>(), FallbackPolicy.ContinueChain);
+            }
         }
 
         protected override IPiece CreateDecoratorClone(IPiece inner) =>
