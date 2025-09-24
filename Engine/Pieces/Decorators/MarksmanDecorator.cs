@@ -52,10 +52,7 @@ namespace RogueChess.Engine.Pieces.Decorators
                 $"[Marksman] Intercepting CaptureEvent: Attacker={ev.Attacker.Name}, Inner={Inner.Name}, This={this.GetType().Name}, ShotsLeft={_rangedAttacksLeft}"
             );
 
-            if (
-                _rangedAttacksLeft > 0
-                && (ReferenceEquals(ev.Attacker, this) || ReferenceEquals(ev.Attacker, Inner))
-            )
+            if (_rangedAttacksLeft > 0 && this.IsAttacker(ev))
             {
                 Console.WriteLine("[Marksman] Condition matched → firing ranged shot!");
                 _rangedAttacksLeft--;
