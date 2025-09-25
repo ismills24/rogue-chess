@@ -192,42 +192,7 @@ namespace RogueChess.Engine
                         board.RemovePiece(pos);
                     break;
                 }
-                case StatusAppliedEvent s:
-                {
-                    var pos = s.Target.Position;
-                    var onBoard = board.GetPieceAt(pos);
-                    if (onBoard != null)
-                    {
-                        if (onBoard is StatusEffectDecorator deco)
-                        {
-                            deco.AddStatus(s.Effect);
-                        }
-                        else
-                        {
-                            var wrapped = new StatusEffectDecorator(onBoard);
-                            wrapped.AddStatus(s.Effect);
-                            board.RemovePiece(pos);
-                            board.PlacePiece(wrapped, pos);
-                        }
-                    }
-                    break;
-                }
-                case StatusRemovedEvent sr:
-                {
-                    var pos = sr.Target.Position;
-                    var onBoard = board.GetPieceAt(pos);
-                    if (onBoard is StatusEffectDecorator deco)
-                    {
-                        deco.RemoveStatus(sr.Effect);
-                        // Optionally unwrap if empty; interceptor can also handle this policy.
-                        if (!deco.HasAnyStatus)
-                        {
-                            board.RemovePiece(pos);
-                            board.PlacePiece(deco.Inner, pos);
-                        }
-                    }
-                    break;
-                }
+
                 case TurnAdvancedEvent t:
                 {
                     nextPlayer = t.NextPlayer;

@@ -34,7 +34,7 @@ namespace RogueChess.Engine.GameModes
             );
 
             // Set up random special tiles
-            //SetupRandomTiles(board);
+            SetupRandomTiles(board);
 
             // Place pieces using the placement init
             placementInit.PlacePieces(board, PlayerColor.White);
@@ -45,12 +45,7 @@ namespace RogueChess.Engine.GameModes
 
         private void SetupRandomTiles(IBoard board)
         {
-            var tileTypes = new Type[]
-            {
-                typeof(ScorchedTile),
-                typeof(SlipperyTile),
-                typeof(GuardianTile),
-            };
+            var tileTypes = new Type[] { typeof(GuardianTile) };
 
             for (int x = 0; x < board.Width; x++)
             {

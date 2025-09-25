@@ -200,12 +200,6 @@ namespace RogueChess.UI
                     return $"Destroy: {des.Target.Name} at {des.Target.Position}";
                 case TileChangedEvent tile:
                     return $"Tile {tile.Position} → {tile.NewTile.GetType().Name}";
-                case StatusAppliedEvent status:
-                    return $"Status +{status.Effect.Name} on {status.Target.Name}";
-                case StatusRemovedEvent statusR:
-                    return $"Status -{statusR.Effect.Name} from {statusR.Target.Name}";
-                case StatusTickEvent tick:
-                    return $"Status {tick.Effect.Name} ticks on {tick.Target.Name} (remaining {tick.RemainingDuration})";
                 case TurnStartEvent ts:
                     return $"Turn {ts.TurnNumber} start for {ts.Player}";
                 case TurnEndEvent te:

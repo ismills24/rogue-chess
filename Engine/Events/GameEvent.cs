@@ -1,7 +1,6 @@
 using System;
 using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Primitives;
-using RogueChess.Engine.StatusEffects;
 using RogueChess.Engine.Tiles;
 
 namespace RogueChess.Engine.Events
@@ -79,37 +78,6 @@ namespace RogueChess.Engine.Events
         }
     }
 
-    public sealed class StatusAppliedEvent : GameEvent
-    {
-        public IPiece Target { get; }
-        public IStatusEffect Effect { get; }
-
-        public StatusAppliedEvent(IPiece target, IStatusEffect effect, PlayerColor actor)
-            : base(actor, false, $"Applied {effect.Name} to {target.Name}", effect.ID)
-        {
-            Target = target;
-            Effect = effect;
-        }
-    }
-
-    public sealed class StatusRemovedEvent : GameEvent
-    {
-        public IPiece Target { get; }
-        public IStatusEffect Effect { get; }
-
-        public StatusRemovedEvent(
-            IPiece target,
-            IStatusEffect effect,
-            PlayerColor actor,
-            Guid sourceId
-        )
-            : base(actor, false, $"Removed {effect.Name} from {target.Name}", sourceId)
-        {
-            Target = target;
-            Effect = effect;
-        }
-    }
-
     public sealed class TurnAdvancedEvent : GameEvent
     {
         public PlayerColor NextPlayer { get; }
@@ -146,31 +114,6 @@ namespace RogueChess.Engine.Events
         {
             Player = player;
             TurnNumber = turnNumber;
-        }
-    }
-
-    public sealed class StatusTickEvent : GameEvent
-    {
-        public IPiece Target { get; }
-        public IStatusEffect Effect { get; }
-        public int RemainingDuration { get; }
-
-        public StatusTickEvent(
-            IPiece target,
-            IStatusEffect effect,
-            int remaining,
-            PlayerColor actor
-        )
-            : base(
-                actor,
-                false,
-                $"{effect.Name} ticks on {target.Name} (remaining {remaining})",
-                effect.ID
-            )
-        {
-            Target = target;
-            Effect = effect;
-            RemainingDuration = remaining;
         }
     }
 

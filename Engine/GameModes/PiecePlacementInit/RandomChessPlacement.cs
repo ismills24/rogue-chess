@@ -6,7 +6,6 @@ using RogueChess.Engine.Interfaces;
 using RogueChess.Engine.Pieces;
 using RogueChess.Engine.Pieces.Decorators;
 using RogueChess.Engine.Primitives;
-using RogueChess.Engine.StatusEffects;
 
 namespace RogueChess.Engine.GameModes.PiecePlacementInit
 {
@@ -74,7 +73,6 @@ namespace RogueChess.Engine.GameModes.PiecePlacementInit
                 }
 
                 // Add random decorators
-                piece = new ScapegoatDecorator(piece);
                 pieces.Add(piece);
             }
 

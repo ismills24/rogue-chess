@@ -389,7 +389,6 @@ namespace RogueChess.UI
         {
             // Check for decorators and status effects
             var hasExploding = HasDecorator(piece, typeof(ExplodingDecorator));
-            var hasStatusEffect = HasDecorator(piece, typeof(StatusEffectDecorator));
             var hasMartyr = HasDecorator(piece, typeof(ScapegoatDecorator));
             var hasMarksman = HasDecorator(piece, typeof(MarksmanDecorator));
 
@@ -398,14 +397,6 @@ namespace RogueChess.UI
             {
                 cell.Text = cell.Text + "*";
                 cell.ForeColor = Color.Orange;
-                cell.Font = new Font("Arial", 8, FontStyle.Bold);
-            }
-
-            if (hasStatusEffect)
-            {
-                // Add a small indicator for status effects
-                cell.Text = cell.Text + "●";
-                cell.ForeColor = Color.Red;
                 cell.Font = new Font("Arial", 8, FontStyle.Bold);
             }
 
@@ -456,15 +447,6 @@ namespace RogueChess.UI
             // Add visual indicators for special tiles
             switch (tile)
             {
-                case ScorchedTile:
-                    // Add a subtle red tint to scorched tiles
-                    var baseColor = cell.BackColor;
-                    cell.BackColor = Color.FromArgb(
-                        Math.Min(255, baseColor.R + 30),
-                        Math.Max(0, baseColor.G - 20),
-                        Math.Max(0, baseColor.B - 20)
-                    );
-                    break;
 
                 case SlipperyTile:
                     // Add a subtle blue tint to slippery tiles
