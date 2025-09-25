@@ -5,12 +5,8 @@
     <ProjectReference Include="..\Assets\Assets.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Svg" Version="3.4.7" />
-  </ItemGroup>
-
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
